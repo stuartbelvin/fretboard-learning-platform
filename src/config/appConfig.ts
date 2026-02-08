@@ -7,7 +7,7 @@
  */
 
 import type { ColorPalette } from './colors';
-import { COLOR_PALETTES, DEFAULT_PALETTE, getPaletteById } from './colors';
+import { COLOR_PALETTES, getPaletteById } from './colors';
 import type { NoteDisplayPreference, MarkerStyle, TuningPreset } from '../store/appStore';
 import {
   DEFAULT_QUIZ_SETTINGS,
@@ -16,7 +16,6 @@ import {
   DEFAULT_VIEWPORT_CONFIG,
 } from '../store/appStore';
 import type { StringTuning } from '../core/instruments/Fretboard';
-import { STANDARD_TUNING } from '../core/instruments/Fretboard';
 
 // ============================================================================
 // Configuration Interfaces

@@ -172,7 +172,7 @@ export function SettingsPanel({
     setTuningPreset,
     resetUserSettings,
     resetQuizSettings,
-    resetViewport,
+    resetViewport: _resetViewport,
     resetToDefaults,
   } = useAppStore();
   

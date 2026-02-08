@@ -127,8 +127,6 @@ export function FretboardDisplay({
   const [dragStartX, setDragStartX] = useState(0);
   const [dragStartValue, setDragStartValue] = useState(0);
   
-  // Calculate end fret for viewport (exclusive - shows startFret to startFret + visibleFrets - 1)
-  const endFret = Math.min(startFret + visibleFrets - 1, fretboard.config.fretCount);
   const fretRange = Array.from({ length: visibleFrets }, (_, i) => startFret + i);
   const stringRange = Array.from({ length: fretboard.config.stringCount }, (_, i) => i + 1);
   

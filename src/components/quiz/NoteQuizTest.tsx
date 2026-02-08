@@ -166,14 +166,6 @@ export function NoteQuizTest() {
     return { startFret, visibleFrets };
   }, []);
 
-  // Prepare a new zone for the next question (called before each question)
-  const prepareZoneForQuestion = useCallback((ctrl: QuizFlowController): HighlightZone => {
-    const zone = prepareActiveZone();
-    setActiveZone(zone);
-    ctrl.setZone(zone);
-    return zone;
-  }, [prepareActiveZone]);
-
   // Auto-advance timer ref
   const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

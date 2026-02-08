@@ -1,4 +1,4 @@
-import { Note, CHROMATIC_SCALE_SHARPS, getPitchClassIndex, getPitchClassFromIndex } from '../music-theory/Note';
+import { Note, getPitchClassIndex, getPitchClassFromIndex } from '../music-theory/Note';
 import type { PitchClass, NoteDisplayPreference } from '../music-theory/Note';
 import { Interval, COMMON_INTERVALS, ALL_INTERVALS } from '../music-theory/Interval';
 import type { IntervalShortName } from '../music-theory/Interval';
