@@ -1,0 +1,382 @@
+/* ===========================================
+   CSS Custom Properties for Global Theming
+   =========================================== */
+:root {
+  /* Global site colors - defaults match Midnight Blue */
+  --page-bg-start: #1a1a2e;
+  --page-bg-end: #16213e;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --control-bg: rgba(255, 255, 255, 0.05);
+  --control-border: rgba(255, 255, 255, 0.1);
+  --accent: #89b4fa;
+  --header-gradient-start: #89b4fa;
+  --header-gradient-end: #b4befe;
+}
+
+/* ===========================================
+   App Layout
+   =========================================== */
+.app {
+  min-height: 100vh;
+  min-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, var(--page-bg-start) 0%, var(--page-bg-end) 100%);
+  transition: background 0.3s ease;
+}
+
+/* ===========================================
+   Header
+   =========================================== */
+.app-header {
+  text-align: center;
+  padding: 24px 16px;
+  border-bottom: 1px solid var(--control-border);
+  transition: border-color 0.3s ease;
+}
+
+.app-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: linear-gradient(90deg, var(--header-gradient-start) 0%, var(--header-gradient-end) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: background 0.3s ease;
+}
+
+.app-header p {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+/* ===========================================
+   View Navigation
+   =========================================== */
+.view-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.nav-btn {
+  padding: 0.5rem 1.25rem;
+  border: 2px solid var(--control-border);
+  border-radius: 8px;
+  background: var(--control-bg);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.nav-btn.active {
+  background: var(--accent);
+  color: #1a1a2e;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* ===========================================
+   Main Content
+   =========================================== */
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  gap: 24px;
+}
+
+/* ===========================================
+   Controls
+   =========================================== */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--control-bg);
+  border-radius: 12px;
+  border: 1px solid var(--control-border);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.control-group label {
+  font-size: 14px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.control-group input[type="range"] {
+  width: 150px;
+  accent-color: var(--accent);
+}
+
+.control-group input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.control-group select {
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.control-group select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.control-group select option {
+  background: var(--page-bg-start);
+  color: var(--text-primary);
+}
+
+.control-group.color-control {
+  min-width: 280px;
+}
+
+/* ===========================================
+   Zone Testing Controls
+   =========================================== */
+.zone-controls {
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 600px;
+  width: 100%;
+}
+
+.zone-controls h3 {
+  margin: 0 0 12px 0;
+  color: var(--accent);
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.zone-controls .control-group {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.zone-controls select {
+  flex: 1;
+  max-width: 350px;
+}
+
+.zone-info {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.zone-info strong {
+  color: var(--accent);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.zone-info ul {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-secondary);
+}
+
+.zone-info li {
+  margin: 4px 0;
+}
+
+.zone-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.zone-stats span {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.zone-stats strong {
+  color: #ef4444;
+}
+
+.rejected-info {
+  font-size: 0.85rem;
+  color: #ef4444 !important;
+}
+
+/* ===========================================
+   Fretboard Wrapper - let FretboardDisplay.css handle sizing
+   =========================================== */
+.app-main > .fretboard-wrapper {
+  display: flex;
+  justify-content: center;
+  overflow-x: visible;
+  padding: 8px 0;
+}
+
+/* ===========================================
+   Click Feedback
+   =========================================== */
+.click-feedback {
+  padding: 16px 24px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  min-width: 280px;
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.click-feedback-title {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.click-feedback-title strong {
+  color: var(--accent);
+  font-size: 16px;
+}
+
+.click-feedback-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.note-info {
+  display: flex;
+  gap: 8px;
+}
+
+.note-info .label {
+  color: var(--text-secondary);
+  min-width: 85px;
+}
+
+.note-info .value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ===========================================
+   Responsive Adjustments
+   =========================================== */
+@media (max-width: 768px) {
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .app-header p {
+    font-size: 0.875rem;
+  }
+  
+  .controls {
+    padding: 12px 16px;
+    gap: 16px;
+  }
+  
+  .control-group input[type="range"] {
+    width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 16px;
+  }
+  
+  .app-main {
+    padding: 16px 8px;
+  }
+  
+  .controls {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .control-group {
+    width: 100%;
+  }
+  
+  .control-group input[type="range"] {
+    width: 100%;
+  }
+  
+  .control-group select {
+    width: 100%;
+  }
+}
+
+/* ===========================================
+   Settings View (APP-004)
+   =========================================== */
+.settings-view {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px;
+  min-height: calc(100vh - 150px);
+}
+
+.settings-view .settings-panel {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+@media (max-width: 600px) {
+  .settings-view {
+    padding: 0;
+  }
+  
+  .settings-view .settings-panel {
+    max-width: 100%;
+    border-radius: 0;
+    min-height: calc(100vh - 150px);
+  }
+}

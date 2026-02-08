@@ -1,0 +1,153 @@
+/**
+ * ColorPaletteSwitcher Component Styles
+ */
+
+.color-palette-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.palette-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.palette-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+.palette-select {
+  flex: 1;
+  min-width: 150px;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.palette-select:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.palette-select:focus {
+  outline: none;
+  border-color: rgba(245, 87, 108, 0.6);
+  box-shadow: 0 0 0 3px rgba(245, 87, 108, 0.2);
+}
+
+.palette-select option {
+  background: #1a1a2e;
+  color: #ffffff;
+  padding: 8px;
+}
+
+.reset-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  transform: rotate(-45deg);
+}
+
+.reset-button:active {
+  transform: rotate(-90deg);
+}
+
+.reset-button:focus {
+  outline: none;
+  border-color: rgba(245, 87, 108, 0.6);
+  box-shadow: 0 0 0 3px rgba(245, 87, 108, 0.2);
+}
+
+/* Color swatches preview */
+.palette-preview {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: default;
+}
+
+.swatch:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.swatch-hover,
+.swatch-active {
+  /* For semi-transparent colors, add a background pattern */
+  background-image: 
+    linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.1) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.1) 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+}
+
+/* Palette description */
+.palette-description {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .palette-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .palette-label {
+    margin-bottom: 4px;
+  }
+  
+  .palette-select {
+    width: 100%;
+  }
+  
+  .reset-button {
+    align-self: flex-end;
+  }
+  
+  .palette-preview {
+    justify-content: center;
+  }
+}

@@ -1,0 +1,394 @@
+.interval-quiz-test {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.quiz-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.quiz-header h2 {
+  margin: 0;
+  color: var(--color-fret-marker);
+}
+
+.test-description {
+  margin: 0.5rem 0 0;
+  color: var(--color-secondary-text, #666);
+  font-size: 0.9rem;
+}
+
+/* Quiz Configuration */
+.quiz-config {
+  background: var(--color-card-bg, #f5f5f5);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.quiz-config h3 {
+  margin: 0 0 1rem;
+  color: var(--color-heading, #333);
+}
+
+.config-section {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border, #ddd);
+}
+
+.config-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.config-section h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--color-heading, #555);
+}
+
+.config-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.config-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.config-row input[type="number"] {
+  width: 70px;
+  padding: 0.3rem;
+  border: 1px solid var(--color-border, #ccc);
+  border-radius: 4px;
+}
+
+.config-row select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--color-border, #ccc);
+  border-radius: 4px;
+}
+
+.config-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-secondary-text, #888);
+  font-style: italic;
+}
+
+/* Interval Checkboxes */
+.interval-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: var(--color-bg, #fff);
+  border-radius: 4px;
+}
+
+.interval-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.interval-checkbox:hover {
+  background: var(--color-hover-bg, #e8e8e8);
+}
+
+.interval-name {
+  font-weight: bold;
+  min-width: 30px;
+}
+
+.interval-full-name {
+  color: var(--color-secondary-text, #666);
+  font-size: 0.8rem;
+}
+
+/* Quiz Controls */
+.quiz-controls {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.quiz-controls button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-start {
+  background: #22c55e;
+  color: white;
+}
+
+.btn-start:hover {
+  background: #16a34a;
+}
+
+.btn-reset {
+  background: #f97316;
+  color: white;
+}
+
+.btn-reset:hover {
+  background: #ea580c;
+}
+
+.btn-next {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-next:hover {
+  background: #2563eb;
+}
+
+/* Quiz Status */
+.quiz-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  padding: 0.75rem;
+  background: var(--color-card-bg, #f0f0f0);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-label {
+  font-size: 0.85rem;
+  color: var(--color-secondary-text, #666);
+}
+
+.status-value {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.status-value.state-active {
+  color: #22c55e;
+}
+
+.status-value.state-complete {
+  color: #3b82f6;
+}
+
+.status-value.score {
+  color: #8b5cf6;
+}
+
+/* Question Display */
+.question-display {
+  text-align: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.question-text {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.question-hint {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.question-detail {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.root-outside-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.4rem;
+  background: rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.compound-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.4rem;
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* Quiz Complete */
+.quiz-complete {
+  text-align: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.quiz-complete h3 {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+}
+
+.final-score {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.score-big {
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.score-accuracy {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+/* Fretboard Container */
+.quiz-fretboard {
+  margin-bottom: 1rem;
+  overflow-x: auto;
+}
+
+/* Event Log */
+.event-log {
+  background: var(--color-card-bg, #1a1a1a);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.event-log h4 {
+  margin: 0 0 0.75rem;
+  color: var(--color-heading, #ccc);
+}
+
+.log-entries {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.log-entry {
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text, #aaa);
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.log-empty {
+  color: var(--color-secondary-text, #666);
+  font-style: italic;
+  margin: 0;
+}
+
+/* Test Checklist */
+.test-checklist {
+  background: var(--color-card-bg, #f5f5f5);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.test-checklist h4 {
+  margin: 0 0 0.75rem;
+  color: var(--color-heading, #333);
+}
+
+.test-checklist ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.5rem;
+}
+
+.test-checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--color-bg, #fff);
+  border-radius: 4px;
+}
+
+.test-checklist li label {
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.test-checklist input[type="checkbox"] {
+  margin-top: 0.2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .quiz-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .config-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .interval-checkboxes {
+    grid-template-columns: 1fr;
+  }
+  
+  .quiz-status {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .question-text {
+    font-size: 1.2rem;
+  }
+  
+  .test-checklist ul {
+    grid-template-columns: 1fr;
+  }
+}

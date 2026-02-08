@@ -1,0 +1,303 @@
+/**
+ * ViewportControls Component Styles
+ */
+
+/* ===========================================
+   Container
+   =========================================== */
+.viewport-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--control-bg);
+  border-radius: 12px;
+  border: 1px solid var(--control-border);
+  min-width: 280px;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+/* Collapsed state */
+.viewport-controls.collapsed {
+  padding: 0;
+  gap: 0;
+  border: none;
+  background: transparent;
+}
+
+.viewport-controls.collapsed .viewport-controls-body {
+  display: none;
+}
+
+/* ===========================================
+   Header
+   =========================================== */
+.viewport-controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--control-border);
+  transition: border-color 0.3s ease;
+}
+
+.viewport-controls.collapsed .viewport-controls-header {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.viewport-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.3s ease;
+}
+
+/* Toggle button for collapsible header */
+.viewport-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.viewport-toggle-btn:hover {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--accent);
+}
+
+.viewport-toggle-icon {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.viewport-controls.collapsed .viewport-toggle-icon {
+  transform: rotate(-90deg);
+}
+
+.viewport-range {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: color 0.3s ease, background 0.3s ease;
+}
+
+/* ===========================================
+   Body
+   =========================================== */
+.viewport-controls-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===========================================
+   Control Rows
+   =========================================== */
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.control-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+.control-value {
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--control-bg);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: color 0.3s ease, background 0.3s ease;
+}
+
+.control-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--control-bg);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.control-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.control-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.control-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+.control-slider:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.control-slider:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+}
+
+/* ===========================================
+   Preset Buttons
+   =========================================== */
+.preset-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preset-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+.preset-button-group {
+  display: flex;
+  gap: 8px;
+}
+
+.preset-button {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.preset-button:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.preset-button.active {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.preset-button:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  outline-offset: 2px;
+}
+
+/* ===========================================
+   Reset Button
+   =========================================== */
+.reset-button {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px dashed var(--control-border);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reset-button:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.reset-button:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  outline-offset: 2px;
+}
+
+
+/* ===========================================
+   Responsive Adjustments
+   =========================================== */
+@media (max-width: 768px) {
+  .viewport-controls {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .preset-button {
+    padding: 10px 8px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .viewport-controls {
+    padding: 12px;
+  }
+  
+  .viewport-controls.collapsed {
+    padding: 0;
+  }
+  
+  .viewport-controls-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .viewport-range {
+    align-self: flex-end;
+  }
+  
+  .preset-button-group {
+    flex-wrap: wrap;
+  }
+  
+  .preset-button {
+    flex: 1 1 calc(50% - 4px);
+    min-width: calc(50% - 4px);
+  }
+}

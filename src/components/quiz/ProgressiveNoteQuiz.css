@@ -1,0 +1,595 @@
+/**
+ * Progressive Note Quiz Styles
+ */
+
+.progressive-note-quiz {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.progressive-note-quiz .quiz-header {
+  text-align: center;
+}
+
+.progressive-note-quiz .quiz-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  color: var(--gray-12);
+}
+
+.progressive-note-quiz .quiz-description {
+  color: var(--gray-11);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* Target Note Display - Prominent styling */
+.progressive-note-quiz .question-display-active {
+  padding: 0.75rem 1.5rem;
+  background: var(--control-bg);
+  border-radius: 12px;
+  border: 1px solid var(--control-border);
+  margin: 0 auto 1.5rem auto;
+  max-width: fit-content;
+}
+
+.progressive-note-quiz .target-note-display {
+  animation: pulseGlow 2s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.progressive-note-quiz .target-note-badge {
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 2.75rem !important;
+  font-weight: 800 !important;
+  padding: 0.4rem 1.5rem !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  min-width: 80px;
+  height: 56px;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+/* Display Controls Row - below fretboard, horizontally aligned */
+.progressive-note-quiz .display-controls-row {
+  padding: 0.75rem 1rem;
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+}
+
+.progressive-note-quiz .color-control-inline {
+  display: flex;
+  align-items: center;
+}
+
+.progressive-note-quiz .color-control-inline .color-palette-switcher {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progressive-note-quiz .color-control-inline .palette-header {
+  flex-wrap: nowrap;
+}
+
+/* Fretboard Display - centered via its own styling */
+.progressive-note-quiz .fretboard-display {
+  margin: 0 auto;
+}
+
+/* Question Row - compact question with pause button inline */
+.question-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.question-display-compact {
+  padding: 0.5rem 1rem;
+  background: var(--color-panel-solid);
+  border-radius: 8px;
+}
+
+.question-text-compact {
+  font-size: 1.1rem;
+  color: var(--gray-12);
+}
+
+.target-note-compact {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent-11);
+  text-shadow: 0 2px 8px var(--accent-a6);
+}
+
+.btn-pause {
+  padding: 0.5rem 1rem !important;
+  font-size: 0.9rem !important;
+}
+
+/* Config Section - uses CSS variable from color scheme */
+.config-section {
+  background: var(--control-bg);
+  border-radius: 12px;
+  padding: var(--space-4);
+  border: 1px solid var(--control-border);
+}
+
+.config-section h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+/* Number input styling for config section */
+.config-section input[type="number"] {
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  width: 100%;
+  -moz-appearance: textfield;
+}
+
+.config-section input[type="number"]::-webkit-outer-spin-button,
+.config-section input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.config-section input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.config-section input[type="number"]:hover {
+  border-color: var(--accent);
+}
+
+.config-subsection-title {
+  margin: 1rem 0 0.5rem 0;
+  color: var(--gray-11);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-surface);
+}
+
+.config-subsection-title:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.config-hint {
+  margin: 0 0 0.5rem 0;
+  color: #757575;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.config-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: #b0b0b0;
+  font-size: 0.9rem;
+}
+
+.config-grid label .default-value {
+  color: #757575;
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+
+.config-grid input {
+  padding: 0.5rem;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-size: 1rem;
+}
+
+.config-grid input:focus {
+  outline: none;
+  border-color: #64b5f6;
+}
+
+.config-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #3a3a3a;
+}
+
+/* Debug Section */
+.debug-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #3a3a3a;
+}
+
+.debug-section summary {
+  cursor: pointer;
+  color: #9e9e9e;
+  font-size: 0.9rem;
+}
+
+.debug-controls {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #1e1e1e;
+  border-radius: 4px;
+}
+
+.debug-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #9e9e9e;
+  font-size: 0.9rem;
+}
+
+.debug-controls input {
+  width: 60px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  background: var(--color-panel-solid);
+  color: #e0e0e0;
+}
+
+/* Stats Bar - Directly below fretboard (uses color theme) */
+.stats-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+}
+
+.stat-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.stat-label {
+  color: var(--text-secondary, #9e9e9e);
+  font-size: 0.9rem;
+}
+
+.stat-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Quiz Controls */
+.quiz-controls {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.progressive-note-quiz button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #1976d2, #1565c0);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #1e88e5, #1976d2);
+  transform: translateY(-1px);
+}
+
+.btn-large {
+  padding: 1rem 2.5rem;
+  font-size: 1.2rem;
+}
+
+.btn-secondary {
+  background: #4a4a4a;
+  color: #e0e0e0;
+}
+
+.btn-secondary:hover {
+  background: #5a5a5a;
+}
+
+.btn-danger {
+  background: #c62828;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #d32f2f;
+}
+
+/* Question Display */
+.question-display {
+  text-align: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #1a237e, #0d47a1);
+  border-radius: 12px;
+}
+
+.question-text {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #e0e0e0;
+}
+
+.target-note {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #64b5f6;
+  text-shadow: 0 2px 8px rgba(100, 181, 246, 0.4);
+}
+
+.question-hint {
+  margin: 0.5rem 0 0 0;
+  color: #9e9e9e;
+  font-size: 0.95rem;
+}
+
+/* Feedback */
+.feedback {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  animation: feedbackPulse 0.3s ease;
+}
+
+@keyframes feedbackPulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.feedback--correct {
+  background: linear-gradient(135deg, #1b5e20, #2e7d32);
+  color: #a5d6a7;
+}
+
+.feedback--incorrect {
+  background: linear-gradient(135deg, #b71c1c, #c62828);
+  color: #ef9a9a;
+}
+
+.feedback--outside {
+  background: linear-gradient(135deg, #4a4a4a, #5a5a5a);
+  color: #ffcc80;
+}
+
+/* Complete Summary */\n.complete-summary {\n  text-align: center;\n  padding: 1.5rem;\n  background: var(--control-bg);\n  border-radius: 12px;\n  border: 1px solid var(--control-border);\n}
+
+/* Paused Summary - uses color scheme */
+.paused-summary {
+  text-align: center;
+  padding: var(--space-4);
+  background: var(--control-bg);
+  border-radius: 12px;
+  border: 1px solid var(--control-border);
+}
+
+.paused-summary h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+}
+
+/* Feedback Container - maintains layout */
+.feedback-container {
+  min-height: 56px; /* Fixed height to prevent layout shifts */
+}
+
+/* Enhanced feedback badge styling */
+.feedback-container [data-radix-badge] {
+  font-size: 1.25rem !important;
+  padding: 0.6rem 1.25rem !important;
+  font-weight: 600;
+  animation: feedbackBadgePulse 0.4s ease;
+}
+
+/* Correct feedback - extra prominence */
+.feedback-container [data-accent-color="green"] {
+  font-size: 1.35rem !important;
+  padding: 0.7rem 1.5rem !important;
+  animation: correctFeedbackPop 0.5s ease;
+}
+
+/* Incorrect feedback - same size as correct */
+.feedback-container [data-accent-color="red"] {
+  font-size: 1.35rem !important;
+  padding: 0.7rem 1.5rem !important;
+}
+
+@keyframes feedbackBadgePulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes correctFeedbackPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.15); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.feedback--placeholder {
+  background: transparent;
+  min-height: 56px;
+}
+
+.complete-summary h3 {
+  margin: 0 0 1rem 0;
+  color: var(--green-11);
+  font-size: 1.5rem;
+}
+
+.summary-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary-label {
+  color: #81c784;
+  font-size: 0.9rem;
+}
+
+.summary-value {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Note Detail Stats - uses CSS variable from color scheme */
+.note-detail-section {
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.note-detail-section h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.note-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+}
+
+.note-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: var(--control-bg);
+  border-radius: 8px;
+  border: 1px solid var(--control-border);
+}
+
+.note-stat-card .note-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.note-stat-card .note-accuracy {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.note-stat-card .note-time {
+  font-size: 0.9rem;
+  color: #ffcc80;
+}
+
+.note-stat-card .note-attempts {
+  font-size: 0.8rem;
+  color: #9e9e9e;
+}
+
+.note-stat-card.locked {
+  background: #252525;
+  border-style: dashed;
+}
+
+.note-stat-card.locked .note-name {
+  color: #757575;
+}
+
+.note-stat-card .locked-label {
+  color: #9e9e9e;
+  font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .progressive-note-quiz {
+    padding: 0.5rem;
+    gap: 1rem;
+  }
+
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-bar {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .summary-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .note-stats-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  }
+
+  .unlock-status {
+    flex-direction: column;
+    text-align: center;
+  }
+}
