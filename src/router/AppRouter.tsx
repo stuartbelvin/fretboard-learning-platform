@@ -15,6 +15,10 @@ export const routes = [
     children: [
       {
         index: true,
+        element: <ProgressiveQuizPage />,
+      },
+      {
+        path: 'home',
         element: <HomePage />,
       },
       {

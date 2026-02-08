@@ -57,6 +57,9 @@ export function ProgressiveNoteQuiz() {
   
   // Auto-advance timer
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Settings collapsed state - defaults to collapsed
+  const [settingsExpanded, setSettingsExpanded] = useState(false);
 
   // Derive unlocked notes and performance data for display
   const { unlockedNotes, notePerformance } = useMemo(() => {
@@ -423,8 +426,18 @@ export function ProgressiveNoteQuiz() {
       {/* Configuration (only when idle or paused) - NOW BELOW FRETBOARD */}
       {(quizState === 'idle' || quizState === 'paused') && (
         <Card mt="4" className="config-section" style={{ padding: 'var(--space-4)' }}>
-          <Heading as="h3" size="3" mb="3">Settings</Heading>
+          <Flex 
+            align="center" 
+            justify="between" 
+            onClick={() => setSettingsExpanded(!settingsExpanded)}
+            style={{ cursor: 'pointer' }}
+          >
+            <Heading as="h3" size="3">Settings</Heading>
+            <Text size="2" color="gray">{settingsExpanded ? '▼' : '▶'}</Text>
+          </Flex>
           
+          {settingsExpanded && (
+          <Box mt="3">
           {/* Unlock Thresholds */}
           <Text size="2" weight="bold" color="gray" mb="2">Unlock Thresholds</Text>
           <Flex wrap="wrap" gap="3" mb="4">
@@ -550,6 +563,8 @@ export function ProgressiveNoteQuiz() {
               />
             </Flex>
           </details>
+          </Box>
+          )}
         </Card>
       )}
 

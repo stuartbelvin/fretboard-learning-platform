@@ -1,31 +1,6 @@
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Box, Flex, Heading, Text, TabNav } from '@radix-ui/themes';
 import '../App.css';
-
-/**
- * Route paths as constants
- */
-const ROUTES = {
-  HOME: '/',
-  NOTE_QUIZ: '/note-quiz',
-  INTERVAL_QUIZ: '/interval-quiz',
-  PROGRESSIVE_QUIZ: '/progressive-quiz',
-  ZONE_ADMIN: '/zone-admin',
-  SETTINGS: '/settings',
-} as const;
-
-/**
- * Navigation link configuration
- */
-const NAV_LINKS = [
-  { to: ROUTES.HOME, label: '🎸 Fretboard', end: true },
-  { to: ROUTES.NOTE_QUIZ, label: '🎯 Note Quiz', end: false },
-  { to: ROUTES.INTERVAL_QUIZ, label: '🎵 Interval Quiz', end: false },
-  { to: ROUTES.PROGRESSIVE_QUIZ, label: '📈 Progressive', end: false },
-  { to: ROUTES.ZONE_ADMIN, label: '📐 Zones', end: false },
-  { to: ROUTES.SETTINGS, label: '⚙️ Settings', end: false },
-] as const;
 
 /**
  * LocalStorage key for persisting the last visited route
@@ -49,47 +24,7 @@ export function AppLayout() {
 
   return (
     <div className="app">
-      <Box asChild p="5" style={{ borderBottom: '1px solid var(--gray-a5)' }}>
-        <header className="app-header">
-          <Heading 
-            as="h1" 
-            size="7" 
-            mb="2" 
-            style={{ 
-              background: 'linear-gradient(90deg, var(--accent-9) 0%, var(--accent-11) 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            Fretboard Mastery Pro
-          </Heading>
-          <Text as="p" size="3" color="gray">Interactive Guitar Fretboard Visualization</Text>
-          
-          {/* Navigation using Radix TabNav */}
-          <Flex justify="center" mt="4">
-            <TabNav.Root size="2">
-              {NAV_LINKS.map(({ to, label }) => {
-                const isActive = location.pathname === to || 
-                  (!NAV_LINKS.find(l => l.to === to)?.end && location.pathname.startsWith(to) && to !== '/');
-                return (
-                  <TabNav.Link 
-                    key={to} 
-                    asChild 
-                    active={isActive}
-                  >
-                    <NavLink to={to}>
-                      {label}
-                    </NavLink>
-                  </TabNav.Link>
-                );
-              })}
-            </TabNav.Root>
-          </Flex>
-        </header>
-      </Box>
-
-      {/* Page Content */}
+      {/* Page Content - no header/navbar */}
       <Outlet />
     </div>
   );
@@ -100,7 +35,7 @@ export function AppLayout() {
  * Used for restoring navigation state on app reload
  */
 export function getLastRoute(): string {
-  return localStorage.getItem(LAST_ROUTE_KEY) || ROUTES.HOME;
+  return localStorage.getItem(LAST_ROUTE_KEY) || '/';
 }
 
 /**
