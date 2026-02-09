@@ -284,21 +284,6 @@ export function ProgressiveNoteQuiz() {
         </Text>
       </Box>
 
-      {/* Question Display + Pause Button (inline) */}
-      {quizState === 'active' && currentTargetNote && (
-        <Flex justify="center" align="center" gap="4" className="question-display-active">
-          <Flex align="center" gap="3" className="target-note-display">
-            <Text size="4" weight="medium">Find:</Text>
-            <Badge size="3" variant="solid" className="target-note-badge">
-              {currentTargetNote}
-            </Badge>
-          </Flex>
-          <Button variant="soft" color="amber" onClick={pauseQuiz}>
-            <PauseIcon /> Pause
-          </Button>
-        </Flex>
-      )}
-
       {/* Quiz Controls (when not active) */}
       {quizState === 'idle' && (
         <Flex justify="center" mb="4">
@@ -319,27 +304,47 @@ export function ProgressiveNoteQuiz() {
         </Flex>
       )}
 
-      {/* Progress Display - Note boxes (no wrapper) */}
-      <Box mb="4">
-        <NoteProgressDisplay
-          notePerformance={notePerformance}
-          unlockedNotes={unlockedNotes}
-          focusedNote={currentTargetNote || undefined}
-          minAttemptsForLearned={minAttemptsForLearned}
-        />
+      {/* Mobile-friendly combined target note + progress display */}
+      <Box className="quiz-top-section" mb="4">
+        {/* Question Display + Pause Button (inline) - shown when active */}
+        {quizState === 'active' && currentTargetNote && (
+          <Flex justify="center" align="center" gap="4" className="question-display-active">
+            <Flex align="center" gap="3" className="target-note-display">
+              <Text size="4" weight="medium" className="find-label">Find:</Text>
+              <Badge size="3" variant="solid" className="target-note-badge">
+                {currentTargetNote}
+              </Badge>
+            </Flex>
+            <Button variant="soft" color="amber" onClick={pauseQuiz} className="pause-btn">
+              <PauseIcon /> Pause
+            </Button>
+          </Flex>
+        )}
+
+        {/* Progress Display - Note boxes */}
+        <Box className="progress-display-wrapper">
+          <NoteProgressDisplay
+            notePerformance={notePerformance}
+            unlockedNotes={unlockedNotes}
+            focusedNote={currentTargetNote || undefined}
+            minAttemptsForLearned={minAttemptsForLearned}
+          />
+        </Box>
       </Box>
 
-      {/* Fretboard - centered */}
-      <Box style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-        <FretboardDisplay
-          startFret={viewportConfig.startFret}
-          visibleFrets={viewportConfig.visibleFrets}
-          showNoteNames={userSettings.showNoteNames}
-          noteDisplay={userSettings.noteDisplay === 'both' ? 'sharps' : userSettings.noteDisplay}
-          markerStyle={userSettings.markerStyle}
-          highlightZones={zoneConfigs}
-          onNoteClick={quizState === 'active' ? handleNoteClick : undefined}
-        />
+      {/* Fretboard - scrollable container for mobile portrait */}
+      <Box className="fretboard-scroll-container">
+        <Box className="fretboard-scroll-inner">
+          <FretboardDisplay
+            startFret={viewportConfig.startFret}
+            visibleFrets={viewportConfig.visibleFrets}
+            showNoteNames={userSettings.showNoteNames}
+            noteDisplay={userSettings.noteDisplay === 'both' ? 'sharps' : userSettings.noteDisplay}
+            markerStyle={userSettings.markerStyle}
+            highlightZones={zoneConfigs}
+            onNoteClick={quizState === 'active' ? handleNoteClick : undefined}
+          />
+        </Box>
       </Box>
 
       {/* Session Stats - with equal spacing above and below */}
