@@ -333,8 +333,8 @@ export function ProgressiveNoteQuiz() {
       </Box>
 
       {/* Fretboard - scrollable container for mobile portrait */}
-      <Box className="fretboard-scroll-container">
-        <Box className="fretboard-scroll-inner">
+      <div className="fretboard-scroll-container">
+        <div className="fretboard-scroll-inner">
           <FretboardDisplay
             startFret={viewportConfig.startFret}
             visibleFrets={viewportConfig.visibleFrets}
@@ -344,10 +344,29 @@ export function ProgressiveNoteQuiz() {
             highlightZones={zoneConfigs}
             onNoteClick={quizState === 'active' ? handleNoteClick : undefined}
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      {/* Session Stats - with equal spacing above and below */}
+      {/* Feedback below fretboard */}
+      {quizState === 'active' && (
+        <Flex justify="center" className="feedback-container">
+          {feedback ? (
+            <Badge 
+              size="2" 
+              variant="soft" 
+              color={feedback.type === 'correct' ? 'green' : feedback.type === 'incorrect' ? 'red' : 'gray'}
+            >
+              {feedback.message}
+            </Badge>
+          ) : (
+            <Badge size="2" variant="soft" color="gray" style={{ visibility: 'hidden' }}>
+              Placeholder
+            </Badge>
+          )}
+        </Flex>
+      )}
+
+      {/* Session Stats - visible only during active quiz */}
       {quizState === 'active' && (
         <Flex justify="center" gap="5" mt="4" mb="4" className="stats-bar">
           <Flex align="center" gap="2">
@@ -362,19 +381,6 @@ export function ProgressiveNoteQuiz() {
                 : 0}%
             </Text>
           </Flex>
-        </Flex>
-      )}
-
-      {/* Feedback - only shown when there is feedback */}
-      {quizState === 'active' && feedback && (
-        <Flex justify="center" className="feedback-container">
-          <Badge 
-            size="2" 
-            variant="soft" 
-            color={feedback.type === 'correct' ? 'green' : feedback.type === 'incorrect' ? 'red' : 'gray'}
-          >
-            {feedback.message}
-          </Badge>
         </Flex>
       )}
 

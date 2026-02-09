@@ -109,3 +109,29 @@
     font-size: 0.8rem;
   }
 }
+
+/* Mobile landscape - larger note boxes to fill height */
+@media (max-height: 500px) and (orientation: landscape) {
+  .note-progress-display {
+    padding: 0;
+  }
+  
+  .note-progress-boxes {
+    gap: 1px;
+  }
+  
+  .note-box {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Very small landscape - slightly smaller */
+@media (max-height: 400px) and (orientation: landscape) {
+  .note-box {
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 0.7rem;
+  }
+}

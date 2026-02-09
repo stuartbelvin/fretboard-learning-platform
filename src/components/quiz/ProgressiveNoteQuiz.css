@@ -8,7 +8,9 @@
   gap: 1.5rem;
   padding: 1rem;
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 /* Header */
@@ -99,6 +101,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
+  width: 100%;
 }
 
 .progress-display-wrapper {
@@ -450,6 +453,10 @@
 /* Feedback Container - maintains layout */
 .feedback-container {
   min-height: 56px; /* Fixed height to prevent layout shifts */
+  min-width: 180px; /* Fixed width to prevent layout shifts when feedback appears/disappears */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Enhanced feedback badge styling */
@@ -622,13 +629,16 @@
 
 /* ===========================================
    Mobile Portrait Mode
-   - Fretboard scrolls horizontally
-   - Everything else stays the same
+   - All UI elements fit screen width
+   - Fretboard scrolls horizontally with sufficient width
    =========================================== */
 @media (max-width: 600px) and (orientation: portrait) {
   .progressive-note-quiz {
     padding: 0.5rem;
     gap: 0.75rem;
+    max-width: 100vw;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
   
   /* Hide header in portrait to save space */
@@ -636,10 +646,28 @@
     display: none;
   }
   
+  /* Top section - stacked vertically in portrait */
+  .quiz-top-section {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Feedback container fits screen */
+  .feedback-container {
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
+    min-height: 40px;
+  }
+  
   /* Compact question display */
   .progressive-note-quiz .question-display-active {
     padding: 0.5rem 1rem;
     margin-bottom: 0.5rem;
+    max-width: calc(100vw - 1rem);
   }
   
   .progressive-note-quiz .target-note-badge {
@@ -649,6 +677,13 @@
     min-width: 60px;
   }
   
+  /* Progress display fits screen */
+  .progress-display-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  
   /* Scrollable fretboard container */
   .fretboard-scroll-container {
     width: 100%;
@@ -656,8 +691,8 @@
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    margin: 0 -0.5rem;
-    padding: 0 0.5rem;
+    margin: 0;
+    padding: 0;
   }
   
   .fretboard-scroll-container::-webkit-scrollbar {
@@ -675,28 +710,58 @@
   }
   
   .fretboard-scroll-inner {
-    min-width: 150vw;
+    /* Fretboard determines its own width based on fret count and min-width */
+    /* This ensures highlights don't overflow the frets */
+    min-width: max-content;
     display: flex;
     justify-content: flex-start;
     padding-right: 1rem;
   }
   
-  /* Make fretboard wider for scrolling */
-  .fretboard-scroll-inner .fretboard-wrapper {
-    min-width: 140vw;
+  /* Stats bar fits screen */
+  .stats-bar {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  
+  /* Display controls fit screen */
+  .display-controls-row {
+    max-width: calc(100vw - 1rem);
+    flex-wrap: wrap;
+  }
+  
+  /* Config section fits screen */
+  .config-section {
+    max-width: calc(100vw - 1rem);
+  }
+  
+  /* Note detail section fits screen */
+  .note-detail-section {
+    max-width: calc(100vw - 1rem);
+  }
+  
+  /* Paused summary fits screen */
+  .paused-summary {
+    max-width: calc(100vw - 1rem);
   }
 }
 
 /* ===========================================
    Mobile Landscape Mode
-   - Compact layout with target note beside progress boxes
-   - Everything fits on screen without scrolling
+   - Progress boxes (left) | note to find (center) in row above fretboard
+   - Feedback below fretboard
+   - Settings visible when quiz is not active
    =========================================== */
 @media (max-height: 500px) and (orientation: landscape) {
   .progressive-note-quiz {
-    padding: 0.25rem 0.5rem;
-    gap: 0.25rem;
+    padding: 0.5rem;
+    gap: 0.5rem;
     max-width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-items: center;
+    justify-content: flex-start;
   }
   
   /* Hide header completely in landscape */
@@ -704,89 +769,162 @@
     display: none;
   }
   
-  /* Combined top section - target note + progress boxes in one row */
+  /* Combined top section - progress | target in one row */
   .quiz-top-section {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    flex-wrap: nowrap;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2rem !important;
+    flex-wrap: nowrap !important;
+    width: 100%;
+    margin-bottom: 0.5rem !important;
+    flex-shrink: 0;
   }
   
-  /* Compact question display in landscape */
-  .progressive-note-quiz .question-display-active {
-    padding: 0.25rem 0.75rem;
-    margin: 0;
+  /* Compact feedback container in landscape */
+  .feedback-container {
+    min-height: 32px !important;
+    min-width: 100px !important;
+    margin-top: 0.25rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+  
+  /* Progress display wrapper - LEFT side */
+  .progress-display-wrapper {
+    order: 1 !important;
     flex-shrink: 0;
+    width: auto !important;
+    height: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center;
+  }
+  
+  /* Question display (note to find) - CENTER - larger */
+  .progressive-note-quiz .question-display-active {
+    order: 2 !important;
+    padding: 0.25rem 0.5rem;
+    margin: 0;
+    background: var(--control-bg) !important;
+    border: 1px solid var(--control-border) !important;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex !important;
+    align-items: center !important;
   }
   
   .progressive-note-quiz .target-note-display {
     gap: 0.5rem;
+    align-items: center;
   }
   
   .progressive-note-quiz .find-label {
-    font-size: 0.9rem !important;
+    display: none !important; /* Hide "Find:" label in landscape */
   }
   
   .progressive-note-quiz .target-note-badge {
-    font-size: 1.5rem !important;
-    padding: 0.2rem 0.75rem !important;
-    height: 36px;
+    font-size: 1.75rem !important;
+    padding: 0.25rem 0.75rem !important;
+    height: auto !important;
     min-width: 50px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
   
   .progressive-note-quiz .pause-btn {
     padding: 0.25rem 0.5rem !important;
     font-size: 0.8rem !important;
+    height: auto !important;
   }
   
-  /* Progress display wrapper - compact inline */
-  .progress-display-wrapper {
-    flex-shrink: 1;
+  /* Compact feedback in landscape */
+  .feedback-container [data-radix-badge] {
+    font-size: 1rem !important;
+    padding: 0.25rem 0.5rem !important;
+    line-height: 1.2;
   }
   
-  /* Fretboard scroll container - no horizontal scroll in landscape */
+  .feedback-container [data-accent-color="green"],
+  .feedback-container [data-accent-color="red"],
+  .feedback-container [data-accent-color="gray"] {
+    font-size: 1rem !important;
+    padding: 0.25rem 0.5rem !important;
+  }
+  
+  /* Fretboard scroll container - CENTERED */
   .fretboard-scroll-container {
-    display: flex;
-    justify-content: center;
+    display: grid !important;
+    place-items: center !important;
     width: 100%;
     overflow: visible;
   }
   
   .fretboard-scroll-inner {
-    min-width: auto;
-    display: flex;
-    justify-content: center;
+    display: contents !important;
   }
   
-  /* Stats bar - very compact */
+  /* Show stats bar in landscape - compact horizontal layout */
   .stats-bar {
-    padding: 0.25rem 0.5rem;
-    gap: 1rem;
+    display: flex !important;
+    gap: 1rem !important;
+    padding: 0.25rem 0.75rem !important;
     margin-top: 0.25rem !important;
     margin-bottom: 0.25rem !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
   }
   
-  /* Feedback - compact */
-  .feedback-container {
-    margin: 0.25rem 0;
+  .stats-bar .stat-item,
+  .stats-bar > div {
+    gap: 0.25rem !important;
   }
   
-  /* Hide note detail section in landscape to save space */
+  .stats-bar .stat-label,
+  .stats-bar [class*="rt-Text"][data-accent-color="gray"] {
+    font-size: 0.8rem !important;
+  }
+  
+  .stats-bar .stat-value,
+  .stats-bar [class*="rt-Text"][data-weight="bold"] {
+    font-size: 0.8rem !important;
+  }
+  
+  /* Hide note detail section in landscape (too much space) */
   .note-detail-section {
-    display: none;
+    display: none !important;
   }
   
-  /* Hide config section in landscape */
+  /* Show config section in landscape when not active - compact */
   .config-section {
-    display: none;
+    display: block !important;
+    padding: 0.5rem !important;
+    margin-top: 0.25rem !important;
   }
   
-  /* Display controls row - compact */
+  .config-section h3 {
+    font-size: 0.9rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  /* Show display controls in landscape when not active */
   .display-controls-row {
-    padding: 0.25rem 0.5rem;
+    display: flex !important;
+    padding: 0.25rem 0.5rem !important;
     margin-top: 0.25rem !important;
+  }
+  
+  /* Show paused summary in landscape - compact */
+  .paused-summary {
+    display: block !important;
+    padding: 0.5rem !important;
+    margin-top: 0.25rem !important;
+  }
+  
+  .paused-summary h3 {
+    font-size: 0.9rem !important;
+    margin-bottom: 0.5rem !important;
   }
 }
 
@@ -795,21 +933,45 @@
    =========================================== */
 @media (max-height: 400px) and (orientation: landscape) {
   .progressive-note-quiz {
-    padding: 0.15rem 0.5rem;
-    gap: 0.15rem;
+    padding: 0.1rem 0.5rem;
+    gap: 0.1rem;
   }
   
   .quiz-top-section {
-    gap: 0.5rem;
+    gap: 1rem !important;
+    margin-bottom: 0.25rem !important;
   }
   
   .progressive-note-quiz .target-note-badge {
-    font-size: 1.25rem !important;
-    height: 30px;
-    min-width: 40px;
+    font-size: 1.4rem !important;
+    padding: 0.2rem 0.5rem !important;
   }
   
+  .progressive-note-quiz .pause-btn {
+    font-size: 0.7rem !important;
+  }
+  
+  .feedback-container [data-radix-badge],
+  .feedback-container [data-accent-color="green"],
+  .feedback-container [data-accent-color="red"],
+  .feedback-container [data-accent-color="gray"] {
+    font-size: 0.85rem !important;
+    padding: 0.2rem 0.4rem !important;
+  }
+  
+  /* More compact stats bar */
   .stats-bar {
-    display: none;
+    padding: 0.15rem 0.5rem !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Show config section but more compact */
+  .config-section {
+    padding: 0.25rem !important;
+  }
+  
+  /* Show display controls but more compact */
+  .display-controls-row {
+    padding: 0.15rem 0.25rem !important;
   }
 }
