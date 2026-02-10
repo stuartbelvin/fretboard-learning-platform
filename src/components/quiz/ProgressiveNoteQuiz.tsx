@@ -69,9 +69,11 @@ export function ProgressiveNoteQuiz() {
   const [settingsExpanded, setSettingsExpanded] = useState(false);
 
   // Derive current string info and notes for that string
-  const currentString = STRING_PROGRESSION[progressiveQuiz.currentStringIndex];
+  // Handle legacy store state that may not have unlockedFretsPerString
+  const currentString = STRING_PROGRESSION[progressiveQuiz.currentStringIndex ?? 0];
   const currentStringNotes = STRING_NOTES[currentString];
-  const currentStringUnlockedFrets = progressiveQuiz.unlockedFretsPerString[currentString] ?? 1;
+  const unlockedFretsPerString = progressiveQuiz.unlockedFretsPerString ?? { 6: 1 };
+  const currentStringUnlockedFrets = unlockedFretsPerString[currentString] ?? 1;
 
   // Get list of mastered strings (all frets unlocked)
   const masteredStrings = useMemo(() => {
