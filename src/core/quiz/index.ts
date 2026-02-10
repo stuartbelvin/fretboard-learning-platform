@@ -73,6 +73,6 @@ export { ProgressiveQuizState, DEFAULT_PROGRESSIVE_CONFIG, E_STRING_NOTES, getPi
 export type {
   ProgressiveQuizConfig,
   NotePerformanceData,
-  EStringPerformance,
+  StringPerformance,
   NoteStats
 } from './ProgressiveQuizState';
