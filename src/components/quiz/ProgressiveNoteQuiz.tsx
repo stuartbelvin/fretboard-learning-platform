@@ -3,7 +3,12 @@ import { Box, Flex, Text, Heading, Button, Card, Badge, TextField, Select } from
 import { PlayIcon, PauseIcon, ResumeIcon, ResetIcon } from '@radix-ui/react-icons';
 import { Note } from '../../core/music-theory/Note';
 import type { PitchClass } from '../../core/music-theory/Note';
-import { E_STRING_NOTES } from '../../core/quiz/ProgressiveQuizState';
+import { 
+  STRING_PROGRESSION, 
+  STRING_NAMES, 
+  STRING_NOTES, 
+  getPitchClassForPosition 
+} from '../../core/quiz/ProgressiveQuizState';
 import { HighlightZone } from '../../core/zones/HighlightZone';
 import { FretboardDisplay } from '../fretboard';
 import type { ZoneConfig } from '../fretboard';
@@ -36,9 +41,11 @@ export function ProgressiveNoteQuiz() {
   const resetProgress = useAppStore((state) => state.resetProgressiveQuiz);
   const updateConfig = useAppStore((state) => state.updateProgressiveConfig);
   const forceUnlock = useAppStore((state) => state.forceUnlockFrets);
+  const forceString = useAppStore((state) => state.forceStringIndex);
   
   // Quiz state
   const [quizState, setQuizState] = useState<'idle' | 'active' | 'paused'>('idle');
+  const [currentTargetString, setCurrentTargetString] = useState<number | null>(null);
   const [currentTargetFret, setCurrentTargetFret] = useState<number | null>(null);
   const [currentTargetNote, setCurrentTargetNote] = useState<PitchClass | null>(null);
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
@@ -61,21 +68,41 @@ export function ProgressiveNoteQuiz() {
   // Settings collapsed state - defaults to collapsed
   const [settingsExpanded, setSettingsExpanded] = useState(false);
 
-  // Derive unlocked notes and performance data for display
-  const { unlockedNotes, notePerformance } = useMemo(() => {
+  // Derive current string info and notes for that string
+  const currentString = STRING_PROGRESSION[progressiveQuiz.currentStringIndex];
+  const currentStringNotes = STRING_NOTES[currentString];
+  const currentStringUnlockedFrets = progressiveQuiz.unlockedFretsPerString[currentString] ?? 1;
+
+  // Get list of mastered strings (all frets unlocked)
+  const masteredStrings = useMemo(() => {
+    const mastered: number[] = [];
+    for (let i = 0; i < progressiveQuiz.currentStringIndex; i++) {
+      mastered.push(STRING_PROGRESSION[i]);
+    }
+    return mastered;
+  }, [progressiveQuiz.currentStringIndex]);
+
+  // Derive notes/performance for the target string (used when quiz is active)
+  // Falls back to current learning string when no question is active
+  const { targetStringUnlockedNotes, targetStringNotePerformance, targetStringOrderedNotes } = useMemo(() => {
+    const targetString = currentTargetString !== null ? currentTargetString : currentString;
+    const targetStringNotes = STRING_NOTES[targetString];
+    const targetUnlockedFrets = targetString === currentString 
+      ? currentStringUnlockedFrets 
+      : 12; // Mastered strings have all 12 frets
+    
     const unlocked = new Set<PitchClass>();
     const perfMap = new Map<PitchClass, NotePerformance>();
     
     for (let fret = 0; fret < 12; fret++) {
-      const pitchClass = E_STRING_NOTES[fret];
+      const pitchClass = targetStringNotes[fret];
       
-      // Note is unlocked if fret < unlockedFrets
-      if (fret < progressiveQuiz.unlockedFrets) {
+      if (fret < targetUnlockedFrets) {
         unlocked.add(pitchClass);
       }
       
-      // Get performance data if it exists
-      const perfData = progressiveQuiz.performance[fret];
+      const stringPerf = progressiveQuiz.performance[targetString];
+      const perfData = stringPerf?.[fret];
       if (perfData && perfData.attempts > 0) {
         perfMap.set(pitchClass, {
           attempts: perfData.attempts,
@@ -85,82 +112,116 @@ export function ProgressiveNoteQuiz() {
       }
     }
     
-    return { unlockedNotes: unlocked, notePerformance: perfMap };
-  }, [progressiveQuiz]);
+    return { 
+      targetStringUnlockedNotes: unlocked, 
+      targetStringNotePerformance: perfMap,
+      targetStringOrderedNotes: targetStringNotes
+    };
+  }, [currentTargetString, currentString, currentStringUnlockedFrets, progressiveQuiz.performance]);
 
-  // Create zone based on unlocked frets (just the E string, frets 0 to unlockedFrets-1)
-  const activeZone = useMemo(() => {
-    const zone = new HighlightZone('Progressive Quiz Zone');
-    // String 6 is the low E string (thickest string)
-    for (let fret = 0; fret < progressiveQuiz.unlockedFrets; fret++) {
-      zone.addNote(6, fret);
+  // Create zone for target string only (full opacity) - highlights which string to click
+  const zoneConfigs: ZoneConfig[] = useMemo(() => {
+    const configs: ZoneConfig[] = [];
+    
+    // When quiz is active, only highlight the target string's unlocked notes
+    const targetString = currentTargetString !== null ? currentTargetString : currentString;
+    const targetStringUnlockedFrets = targetString === currentString 
+      ? currentStringUnlockedFrets 
+      : 12; // Mastered strings have all 12 frets
+    
+    const targetZone = new HighlightZone(`${STRING_NAMES[targetString]} String Zone`);
+    for (let fret = 0; fret < targetStringUnlockedFrets; fret++) {
+      targetZone.addNote(targetString, fret);
     }
-    return zone;
-  }, [progressiveQuiz.unlockedFrets]);
+    configs.push({
+      zone: targetZone,
+      color: currentPalette.colors.accent,  // Full opacity
+      label: `${STRING_NAMES[targetString]}`
+    });
+    
+    return configs;
+  }, [currentTargetString, currentString, currentStringUnlockedFrets, currentPalette.colors.accent]);
 
-  const zoneConfigs: ZoneConfig[] = useMemo(() => [{
-    zone: activeZone,
-    color: currentPalette.colors.accent,  // Use accent color from current palette
-    label: 'E String Zone'
-  }], [activeZone, currentPalette.colors.accent]);
-
-  // Calculate viewport to show E string notes
+  // Calculate viewport to show relevant frets based on target string (always start from 0)
   const viewportConfig = useMemo(() => {
-    const visibleFrets = Math.max(progressiveQuiz.unlockedFrets + 2, 7);
+    // Use target string's unlocked frets to determine viewport
+    const targetString = currentTargetString !== null ? currentTargetString : currentString;
+    const targetUnlockedFrets = targetString === currentString 
+      ? currentStringUnlockedFrets 
+      : 12; // Mastered strings have all 12 frets
+    
+    const visibleFrets = Math.max(targetUnlockedFrets + 2, 7);
     return { startFret: 0, visibleFrets: Math.min(visibleFrets, 13) };
-  }, [progressiveQuiz.unlockedFrets]);
+  }, [currentTargetString, currentString, currentStringUnlockedFrets]);
 
-  // Generate next question with weighted random selection based on performance
+  // Generate next question with 80/20 split between current and mastered strings
   const generateQuestion = useCallback(() => {
-    const maxFret = progressiveQuiz.unlockedFrets;
     const config = progressiveQuiz.config;
+    const currentStringProbability = config.currentStringProbability ?? 0.8;
     
-    // Build weighted selection array
-    const weights: number[] = [];
-    let totalWeight = 0;
-    
-    for (let fret = 0; fret < maxFret; fret++) {
-      const perf = progressiveQuiz.performance[fret];
-      let weight = 1; // Base weight
+    // Helper to select a weighted fret from a string
+    const selectWeightedFret = (stringNum: number, maxFret: number): number => {
+      const stringPerf = progressiveQuiz.performance[stringNum] || {};
+      const weights: number[] = [];
+      let totalWeight = 0;
       
-      if (!perf || perf.attempts < config.minAttemptsForLearned) {
-        // Unlearned/new note - boost weight
-        weight *= config.unlearnedNoteWeight;
-      } else {
-        // Calculate accuracy
-        const accuracy = (perf.correct / perf.attempts) * 100;
-        if (accuracy < config.strugglingAccuracyThreshold) {
-          // Struggling note - boost weight based on how far below threshold
-          const struggleFactor = (config.strugglingAccuracyThreshold - accuracy) / config.strugglingAccuracyThreshold;
-          weight *= 1 + (config.lowAccuracyWeight - 1) * struggleFactor;
-        } else if (accuracy >= config.accuracyThreshold) {
-          // Mastered note - reduce weight (but keep it in rotation)
-          weight *= 0.5;
+      for (let fret = 0; fret < maxFret; fret++) {
+        const perf = stringPerf[fret];
+        let weight = 1; // Base weight
+        
+        if (!perf || perf.attempts < config.minAttemptsForLearned) {
+          // Unlearned/new note - boost weight
+          weight *= config.unlearnedNoteWeight;
+        } else {
+          // Calculate accuracy
+          const accuracy = (perf.correct / perf.attempts) * 100;
+          if (accuracy < config.strugglingAccuracyThreshold) {
+            // Struggling note - boost weight based on how far below threshold
+            const struggleFactor = (config.strugglingAccuracyThreshold - accuracy) / config.strugglingAccuracyThreshold;
+            weight *= 1 + (config.lowAccuracyWeight - 1) * struggleFactor;
+          } else if (accuracy >= config.accuracyThreshold) {
+            // Mastered note - reduce weight (but keep it in rotation)
+            weight *= 0.5;
+          }
+        }
+        
+        weights.push(weight);
+        totalWeight += weight;
+      }
+      
+      // Weighted random selection
+      let random = Math.random() * totalWeight;
+      for (let fret = 0; fret < maxFret; fret++) {
+        random -= weights[fret];
+        if (random <= 0) {
+          return fret;
         }
       }
-      
-      weights.push(weight);
-      totalWeight += weight;
+      return maxFret - 1;
+    };
+    
+    let targetString: number;
+    let targetFret: number;
+    
+    // 80% from current string, 20% from mastered strings (if any)
+    if (masteredStrings.length === 0 || Math.random() < currentStringProbability) {
+      // Question from current learning string
+      targetString = currentString;
+      targetFret = selectWeightedFret(currentString, currentStringUnlockedFrets);
+    } else {
+      // Question from a random mastered string (20% of the time)
+      targetString = masteredStrings[Math.floor(Math.random() * masteredStrings.length)];
+      targetFret = selectWeightedFret(targetString, 12); // Mastered strings have all 12 frets
     }
     
-    // Weighted random selection
-    let random = Math.random() * totalWeight;
-    let targetFret = 0;
-    for (let fret = 0; fret < maxFret; fret++) {
-      random -= weights[fret];
-      if (random <= 0) {
-        targetFret = fret;
-        break;
-      }
-    }
+    const targetNote = getPitchClassForPosition(targetString, targetFret);
     
-    const targetNote = E_STRING_NOTES[targetFret];
-    
+    setCurrentTargetString(targetString);
     setCurrentTargetFret(targetFret);
     setCurrentTargetNote(targetNote);
     setQuestionStartTime(Date.now());
     setFeedback(null);
-  }, [progressiveQuiz.unlockedFrets, progressiveQuiz.config, progressiveQuiz.performance]);
+  }, [progressiveQuiz.config, progressiveQuiz.performance, currentString, currentStringUnlockedFrets, masteredStrings]);
 
   // Start quiz
   const startQuiz = useCallback(() => {
@@ -172,6 +233,7 @@ export function ProgressiveNoteQuiz() {
   // Pause quiz
   const pauseQuiz = useCallback(() => {
     setQuizState('paused');
+    setCurrentTargetString(null);
     setCurrentTargetFret(null);
     setCurrentTargetNote(null);
     setFeedback(null);
@@ -190,6 +252,7 @@ export function ProgressiveNoteQuiz() {
   // Reset to idle
   const resetQuiz = useCallback(() => {
     setQuizState('idle');
+    setCurrentTargetString(null);
     setCurrentTargetFret(null);
     setCurrentTargetNote(null);
     setFeedback(null);
@@ -202,16 +265,19 @@ export function ProgressiveNoteQuiz() {
 
   // Handle note click
   const handleNoteClick = useCallback((note: Note) => {
-    if (quizState !== 'active' || currentTargetFret === null) return;
+    if (quizState !== 'active' || currentTargetFret === null || currentTargetString === null) return;
 
-    // Check if click is on the E string (string 6)
-    if (note.string !== 6) {
-      setFeedback({ type: 'outside', message: 'Click on the low E string!' });
+    // Only allow clicks on the target string (the highlighted one)
+    if (note.string !== currentTargetString) {
+      setFeedback({ type: 'outside', message: `Click on the ${STRING_NAMES[currentTargetString]} string!` });
       return;
     }
 
-    // Check if click is within unlocked frets
-    if (note.fret >= progressiveQuiz.unlockedFrets) {
+    // Check if click is within unlocked frets for the target string
+    const targetUnlockedFrets = currentTargetString === currentString 
+      ? currentStringUnlockedFrets 
+      : 12; // Mastered strings have all 12 frets
+    if (note.fret >= targetUnlockedFrets) {
       setFeedback({ type: 'outside', message: 'This note is locked!' });
       return;
     }
@@ -219,11 +285,11 @@ export function ProgressiveNoteQuiz() {
     // Calculate answer time
     const answerTime = (Date.now() - questionStartTime) / 1000;
     
-    // Check if correct
+    // Check if correct (must match the target fret)
     const isCorrect = note.fret === currentTargetFret;
     
-    // Record the attempt
-    recordAttempt(currentTargetFret, isCorrect, answerTime);
+    // Record the attempt on the target string/fret
+    recordAttempt(currentTargetString, currentTargetFret, isCorrect, answerTime);
     
     // Update session stats
     setSessionStats(prev => ({
@@ -243,13 +309,13 @@ export function ProgressiveNoteQuiz() {
         generateQuestion();
       }, Math.max(progressiveQuiz.config.nextNoteDelay, 800));
     } else {
-      const clickedNote = E_STRING_NOTES[note.fret];
+      const clickedNote = getPitchClassForPosition(note.string, note.fret);
       setFeedback({ type: 'incorrect', message: `Wrong! You clicked ${clickedNote}` });
       
       // Don't auto-advance on incorrect - let them try again
       // But we still count it as an attempt
     }
-  }, [quizState, currentTargetFret, progressiveQuiz, questionStartTime, recordAttempt, generateQuestion]);
+  }, [quizState, currentTargetFret, currentTargetString, currentString, currentStringUnlockedFrets, progressiveQuiz.config, questionStartTime, recordAttempt, generateQuestion]);
 
   // Apply config changes
   const applyConfigChanges = useCallback(() => {
@@ -306,8 +372,20 @@ export function ProgressiveNoteQuiz() {
 
       {/* Mobile-friendly combined target note + progress display */}
       <Box className="quiz-top-section" mb="4">
+        {/* Current string indicator */}
+        <Flex justify="center" mb="3" gap="2" align="center" className="string-indicator">
+          <Text size="2" color="gray">Learning:</Text>
+          <Badge variant="soft" color="blue">{STRING_NAMES[currentString]}</Badge>
+          <Text size="2" color="gray">({currentStringUnlockedFrets}/12 notes)</Text>
+          {masteredStrings.length > 0 && (
+            <Badge variant="outline" color="green" ml="2">
+              {masteredStrings.length} string{masteredStrings.length > 1 ? 's' : ''} mastered
+            </Badge>
+          )}
+        </Flex>
+
         {/* Question Display + Pause Button (inline) - shown when active */}
-        {quizState === 'active' && currentTargetNote && (
+        {quizState === 'active' && currentTargetNote && currentTargetString && (
           <Flex justify="center" align="center" gap="4" className="question-display-active">
             <Flex align="center" gap="3" className="target-note-display">
               <Text size="4" weight="medium" className="find-label">Find:</Text>
@@ -321,20 +399,21 @@ export function ProgressiveNoteQuiz() {
           </Flex>
         )}
 
-        {/* Progress Display - Note boxes */}
+        {/* Progress Display - Note boxes for current question's string */}
         <Box className="progress-display-wrapper">
           <NoteProgressDisplay
-            notePerformance={notePerformance}
-            unlockedNotes={unlockedNotes}
+            notePerformance={targetStringNotePerformance}
+            unlockedNotes={targetStringUnlockedNotes}
             focusedNote={currentTargetNote || undefined}
             minAttemptsForLearned={minAttemptsForLearned}
+            orderedNotes={targetStringOrderedNotes}
           />
         </Box>
       </Box>
 
       {/* Fretboard - scrollable container for mobile portrait */}
-      <div className="fretboard-scroll-container">
-        <div className="fretboard-scroll-inner">
+      <Box className="fretboard-scroll-container">
+        <Box className="fretboard-scroll-inner">
           <FretboardDisplay
             startFret={viewportConfig.startFret}
             visibleFrets={viewportConfig.visibleFrets}
@@ -344,8 +423,8 @@ export function ProgressiveNoteQuiz() {
             highlightZones={zoneConfigs}
             onNoteClick={quizState === 'active' ? handleNoteClick : undefined}
           />
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Feedback below fretboard */}
       {quizState === 'active' && (
@@ -427,8 +506,16 @@ export function ProgressiveNoteQuiz() {
               </Text>
             </Flex>
             <Flex justify="between">
+              <Text color="gray">Current String:</Text>
+              <Text weight="bold">{STRING_NAMES[currentString]}</Text>
+            </Flex>
+            <Flex justify="between">
               <Text color="gray">Notes Unlocked:</Text>
-              <Text weight="bold">{progressiveQuiz.unlockedFrets}/12</Text>
+              <Text weight="bold">{currentStringUnlockedFrets}/12</Text>
+            </Flex>
+            <Flex justify="between">
+              <Text color="gray">Strings Mastered:</Text>
+              <Text weight="bold">{masteredStrings.length}/6</Text>
             </Flex>
           </Flex>
         </Card>
@@ -563,15 +650,29 @@ export function ProgressiveNoteQuiz() {
           <details className="debug-section">
             <summary>Debug Options</summary>
             <Flex direction="column" gap="2" mt="2">
-              <Text size="2">Force unlock frets: {progressiveQuiz.unlockedFrets}</Text>
-              <TextField.Root
-                type="number"
-                min={1}
-                max={12}
-                step={1}
-                value={progressiveQuiz.unlockedFrets.toString()}
-                onChange={(e) => forceUnlock(Number(e.target.value) || 1)}
-              />
+              <Text size="2">Current string: {STRING_NAMES[currentString]}</Text>
+              <Flex gap="2" align="center">
+                <Text size="2">String index:</Text>
+                <TextField.Root
+                  type="number"
+                  min={0}
+                  max={5}
+                  step={1}
+                  value={progressiveQuiz.currentStringIndex.toString()}
+                  onChange={(e) => forceString(Number(e.target.value) || 0)}
+                />
+              </Flex>
+              <Flex gap="2" align="center">
+                <Text size="2">Unlock frets:</Text>
+                <TextField.Root
+                  type="number"
+                  min={1}
+                  max={12}
+                  step={1}
+                  value={currentStringUnlockedFrets.toString()}
+                  onChange={(e) => forceUnlock(Number(e.target.value) || 1)}
+                />
+              </Flex>
             </Flex>
           </details>
           </Box>
@@ -581,10 +682,11 @@ export function ProgressiveNoteQuiz() {
 
       {/* Note Detail Stats */}
       <Box mt="4" className="note-detail-section">
-        <Heading as="h3" size="3" mb="3">Note Statistics</Heading>
+        <Heading as="h3" size="3" mb="3">Note Statistics - {STRING_NAMES[currentString]}</Heading>
         <Flex wrap="wrap" gap="2" className="note-stats-grid">
-          {E_STRING_NOTES.slice(0, progressiveQuiz.unlockedFrets).map((note, fret) => {
-            const perf = progressiveQuiz.performance[fret];
+          {currentStringNotes.slice(0, currentStringUnlockedFrets).map((note, fret) => {
+            const stringPerf = progressiveQuiz.performance[currentString];
+            const perf = stringPerf?.[fret];
             const accuracy = perf && perf.attempts > 0 
               ? ((perf.correct / perf.attempts) * 100).toFixed(0) 
               : '-';
@@ -593,7 +695,7 @@ export function ProgressiveNoteQuiz() {
               : '-';
             
             return (
-              <Card key={note} size="1" className="note-stat-card">
+              <Card key={`${currentString}-${fret}`} size="1" className="note-stat-card">
                 <Text weight="bold">{note}</Text>
                 <Text size="1" color="gray">{accuracy}%</Text>
                 <Text size="1" color="gray">{avgTime}s</Text>
@@ -602,9 +704,9 @@ export function ProgressiveNoteQuiz() {
             );
           })}
           
-          {progressiveQuiz.unlockedFrets < 12 && (
+          {currentStringUnlockedFrets < 12 && (
             <Card size="1" className="note-stat-card locked">
-              <Text weight="bold">{E_STRING_NOTES[progressiveQuiz.unlockedFrets]}</Text>
+              <Text weight="bold">{currentStringNotes[currentStringUnlockedFrets]}</Text>
               <Badge size="1" color="gray">Next</Badge>
             </Card>
           )}

@@ -112,14 +112,19 @@
 
 /* Fretboard Scroll Container - default behavior (no scroll on desktop) */
 .fretboard-scroll-container {
-  display: flex;
-  justify-content: center;
+  display: block;
+  text-align: center;
   width: 100%;
 }
 
 .fretboard-scroll-inner {
-  display: flex;
-  justify-content: center;
+  display: inline-block;
+  text-align: center;
+}
+
+/* Ensure fretboard wrapper centers properly on all views */
+.fretboard-scroll-inner .fretboard-wrapper {
+  margin: 0 auto;
 }
 
 /* Question Row - compact question with pause button inline */
@@ -433,7 +438,14 @@
   color: #ffcc80;
 }
 
-/* Complete Summary */\n.complete-summary {\n  text-align: center;\n  padding: 1.5rem;\n  background: var(--control-bg);\n  border-radius: 12px;\n  border: 1px solid var(--control-border);\n}
+/* Complete Summary */
+.complete-summary {
+  text-align: center;
+  padding: 1.5rem;
+  background: var(--control-bg);
+  border-radius: 12px;
+  border: 1px solid var(--control-border);
+}
 
 /* Paused Summary - uses color scheme */
 .paused-summary {
@@ -855,14 +867,23 @@
   
   /* Fretboard scroll container - CENTERED */
   .fretboard-scroll-container {
-    display: grid !important;
-    place-items: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
     width: 100%;
     overflow: visible;
   }
   
   .fretboard-scroll-inner {
-    display: contents !important;
+    min-width: auto;
+    display: flex !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Ensure fretboard wrapper is centered */
+  .fretboard-scroll-inner .fretboard-wrapper {
+    margin: 0 auto !important;
   }
   
   /* Show stats bar in landscape - compact horizontal layout */

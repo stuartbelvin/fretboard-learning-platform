@@ -466,7 +466,9 @@
   }
   
   .fretboard {
-    padding: 8px 4px;
+    /* Keep consistent with default (no horizontal padding) to ensure
+       zone highlights align with fret markers/wires which use inset: 0 */
+    padding: 8px 0;
   }
 }
 

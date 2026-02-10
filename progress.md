@@ -57,6 +57,77 @@ The app supports three layouts:
 
 ### February 9, 2026
 
+#### Multi-String Progression ✅
+**Status:** Complete
+
+Implemented multi-string quiz progression. Users now progress from the Low E string through all six strings, with each string having its own progress data.
+
+**Features:**
+- **String Progression Order:** Low E (6) → A (5) → D (4) → G (3) → B (2) → High E (1)
+- **Per-String Progress:** Each string tracks its own unlocked frets and performance data
+- **80/20 Question Split:** 80% of questions from the current learning string, 20% from mastered strings
+- **Visual Indicators:** 
+  - Current string indicator showing learning progress
+  - String name label above progress boxes
+  - Mastered string zones shown with dimmer highlighting
+  - Target note shows which string if from a mastered string
+
+**Technical Implementation:**
+- `ProgressiveQuizState.ts` - Rewritten for multi-string support
+  - `STRING_PROGRESSION` constant defines learning order
+  - `STRING_NOTES` maps notes for each string (frets 0-11)
+  - `AllStringsPerformance` type for per-string, per-fret tracking
+  - `generateQuestionTarget()` implements 80/20 split logic
+  - `currentStringProbability` config parameter (default 0.8)
+- `appStore.ts` - Updated interface and actions
+  - `unlockedFretsPerString: Record<number, number>` replaces single `unlockedFrets`
+  - `currentStringIndex` tracks position in string progression
+  - `recordProgressiveAttempt(string, fret, correct, time)` now takes string parameter
+  - `forceStringIndex(index)` for testing/debugging
+- `ProgressiveNoteQuiz.tsx` - Updated UI component
+  - Shows current learning string indicator
+  - Creates zones for current string + mastered strings
+  - Validates clicks against correct string and fret
+- `NoteProgressDisplay.tsx` - New props for string-specific display
+  - `orderedNotes` prop for custom note ordering per string
+  - `stringLabel` prop for string identification
+
+**Files Changed:**
+- `src/core/quiz/ProgressiveQuizState.ts` - Core multi-string logic
+- `src/store/appStore.ts` - State management updates
+- `src/components/quiz/ProgressiveNoteQuiz.tsx` - UI updates
+- `src/components/quiz/NoteProgressDisplay.tsx` - String label support
+- `src/components/quiz/NoteProgressDisplay.css` - Label styling
+- `src/tests/unit/ProgressiveQuizState.test.ts` - Updated for new API
+
+---
+
+#### Zone Highlight Alignment Fix ✅
+**Status:** Complete
+
+Fixed misalignment between zone highlights and frets in portrait view at widths below 480px.
+
+**Root Cause:**
+At the 480px breakpoint, `.fretboard` had `padding: 8px 4px` which introduced 4px horizontal padding. The fret markers layer and fret wires use `inset: 0` (filling to the padding-box edge), but the string rows containing zone highlights are grid children that start at the content-box edge. This 4px difference caused the zone highlights to be offset from the fret markers/wires.
+
+**Fix:**
+Changed `.fretboard` padding at 480px from `padding: 8px 4px` to `padding: 8px 0` to match the default styling (no horizontal padding), ensuring all layers align consistently.
+
+**Files Changed:**
+- `src/components/fretboard/FretboardDisplay.css` - Removed horizontal padding at 480px breakpoint
+
+---
+
+#### Mobile Portrait Issues ✅
+**Status:** Complete
+
+Previously identified issues in mobile portrait view have been resolved:
+
+1. **~~Inaccessible Left Frets~~** - Fixed separately (frets 0-2 now scrollable)
+2. **~~Zone Highlight Misalignment~~** - Fixed by removing horizontal padding at 480px breakpoint
+
+---
+
 #### Responsive UI Fixes ✅
 **Status:** Complete
 

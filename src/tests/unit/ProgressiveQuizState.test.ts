@@ -98,7 +98,7 @@ describe('ProgressiveQuizState', () => {
     });
 
     it('should not have all notes unlocked', () => {
-      expect(quizState.allNotesUnlocked).toBe(false);
+      expect(quizState.currentStringComplete).toBe(false);
     });
 
     it('should have default config', () => {
@@ -113,7 +113,7 @@ describe('ProgressiveQuizState', () => {
 
     it('should initialize performance data for all 12 frets', () => {
       for (let fret = 0; fret <= 11; fret++) {
-        const perf = quizState.getPerformanceData(fret);
+        const perf = quizState.getPerformanceData(6, fret);
         expect(perf).toBeDefined();
         expect(perf!.attempts).toBe(0);
         expect(perf!.correct).toBe(0);
@@ -142,89 +142,89 @@ describe('ProgressiveQuizState', () => {
 
   describe('Recording Attempts', () => {
     it('should increment attempts count', () => {
-      quizState.recordAttempt(0, true, 2);
-      expect(quizState.getPerformanceData(0)!.attempts).toBe(1);
+      quizState.recordAttempt(6, 0, true, 2);
+      expect(quizState.getPerformanceData(6, 0)!.attempts).toBe(1);
     });
 
     it('should increment correct count on correct answer', () => {
-      quizState.recordAttempt(0, true, 2);
-      expect(quizState.getPerformanceData(0)!.correct).toBe(1);
+      quizState.recordAttempt(6, 0, true, 2);
+      expect(quizState.getPerformanceData(6, 0)!.correct).toBe(1);
     });
 
     it('should not increment correct count on incorrect answer', () => {
-      quizState.recordAttempt(0, false, 2);
-      expect(quizState.getPerformanceData(0)!.correct).toBe(0);
+      quizState.recordAttempt(6, 0, false, 2);
+      expect(quizState.getPerformanceData(6, 0)!.correct).toBe(0);
     });
 
     it('should record answer time when under threshold', () => {
-      quizState.recordAttempt(0, true, 2.5);
-      expect(quizState.getPerformanceData(0)!.answerTimes).toEqual([2.5]);
+      quizState.recordAttempt(6, 0, true, 2.5);
+      expect(quizState.getPerformanceData(6, 0)!.answerTimes).toEqual([2.5]);
     });
 
     it('should NOT record answer time when over threshold', () => {
-      quizState.recordAttempt(0, true, 25); // 25 > 20 second threshold
-      expect(quizState.getPerformanceData(0)!.answerTimes).toEqual([]);
+      quizState.recordAttempt(6, 0, true, 25); // 25 > 20 second threshold
+      expect(quizState.getPerformanceData(6, 0)!.answerTimes).toEqual([]);
     });
 
     it('should record answer time exactly at threshold', () => {
-      quizState.recordAttempt(0, true, 20); // exactly at threshold
-      expect(quizState.getPerformanceData(0)!.answerTimes).toEqual([20]);
+      quizState.recordAttempt(6, 0, true, 20); // exactly at threshold
+      expect(quizState.getPerformanceData(6, 0)!.answerTimes).toEqual([20]);
     });
 
     it('should update lastAttemptTime', () => {
       const before = Date.now();
-      quizState.recordAttempt(0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
       const after = Date.now();
-      const lastAttempt = quizState.getPerformanceData(0)!.lastAttemptTime;
+      const lastAttempt = quizState.getPerformanceData(6, 0)!.lastAttemptTime;
       expect(lastAttempt).toBeGreaterThanOrEqual(before);
       expect(lastAttempt).toBeLessThanOrEqual(after);
     });
 
     it('should throw for invalid fret number', () => {
-      expect(() => quizState.recordAttempt(-1, true, 2)).toThrow();
-      expect(() => quizState.recordAttempt(12, true, 2)).toThrow();
+      expect(() => quizState.recordAttempt(6, -1, true, 2)).toThrow();
+      expect(() => quizState.recordAttempt(6, 12, true, 2)).toThrow();
     });
   });
 
   describe('Note Statistics', () => {
     it('should calculate accuracy correctly', () => {
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, false, 2);
-      const stats = quizState.getNoteStats(0);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, false, 2);
+      const stats = quizState.getNoteStats(6, 0);
       expect(stats.accuracy).toBeCloseTo(66.67, 1);
     });
 
     it('should calculate average time correctly', () => {
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 3);
-      quizState.recordAttempt(0, true, 4);
-      const stats = quizState.getNoteStats(0);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 3);
+      quizState.recordAttempt(6, 0, true, 4);
+      const stats = quizState.getNoteStats(6, 0);
       expect(stats.averageTime).toBe(3);
     });
 
     it('should return null average time with no valid times', () => {
-      quizState.recordAttempt(0, true, 25); // ignored
-      const stats = quizState.getNoteStats(0);
+      quizState.recordAttempt(6, 0, true, 25); // ignored
+      const stats = quizState.getNoteStats(6, 0);
       expect(stats.averageTime).toBeNull();
     });
 
     it('should indicate if note is unlocked', () => {
-      expect(quizState.getNoteStats(0).isUnlocked).toBe(true);
-      expect(quizState.getNoteStats(1).isUnlocked).toBe(false);
+      expect(quizState.getNoteStats(6, 0).isUnlocked).toBe(true);
+      expect(quizState.getNoteStats(6, 1).isUnlocked).toBe(false);
     });
 
     it('should include correct pitch class', () => {
-      expect(quizState.getNoteStats(0).pitchClass).toBe('E');
-      expect(quizState.getNoteStats(5).pitchClass).toBe('A');
+      expect(quizState.getNoteStats(6, 0).pitchClass).toBe('E');
+      expect(quizState.getNoteStats(6, 5).pitchClass).toBe('A');
     });
   });
 
   describe('Overall Statistics', () => {
     it('should calculate totals across unlocked notes', () => {
       // Record attempts on fret 0
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, false, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, false, 2);
       
       const overall = quizState.getOverallStats();
       expect(overall.totalAttempts).toBe(2);
@@ -242,57 +242,57 @@ describe('ProgressiveQuizState', () => {
   describe('Unlock Criteria', () => {
     it('should not unlock without minimum attempts', () => {
       // Only 2 attempts (need 3)
-      quizState.recordAttempt(0, true, 1);
-      quizState.recordAttempt(0, true, 1);
+      quizState.recordAttempt(6, 0, true, 1);
+      quizState.recordAttempt(6, 0, true, 1);
       expect(quizState.unlockedFrets).toBe(1);
     });
 
     it('should not unlock with low accuracy', () => {
       // 66% accuracy (need 80%)
-      quizState.recordAttempt(0, true, 1);
-      quizState.recordAttempt(0, true, 1);
-      quizState.recordAttempt(0, false, 1);
+      quizState.recordAttempt(6, 0, true, 1);
+      quizState.recordAttempt(6, 0, true, 1);
+      quizState.recordAttempt(6, 0, false, 1);
       expect(quizState.unlockedFrets).toBe(1);
     });
 
     it('should not unlock with slow times', () => {
       // 5 second average (need under 3)
-      quizState.recordAttempt(0, true, 5);
-      quizState.recordAttempt(0, true, 5);
-      quizState.recordAttempt(0, true, 5);
+      quizState.recordAttempt(6, 0, true, 5);
+      quizState.recordAttempt(6, 0, true, 5);
+      quizState.recordAttempt(6, 0, true, 5);
       expect(quizState.unlockedFrets).toBe(1);
     });
 
     it('should not unlock without valid times', () => {
       // All times over threshold
-      quizState.recordAttempt(0, true, 25);
-      quizState.recordAttempt(0, true, 25);
-      quizState.recordAttempt(0, true, 25);
+      quizState.recordAttempt(6, 0, true, 25);
+      quizState.recordAttempt(6, 0, true, 25);
+      quizState.recordAttempt(6, 0, true, 25);
       expect(quizState.unlockedFrets).toBe(1);
     });
 
     it('should unlock when all criteria met', () => {
       // 100% accuracy, 2 second average, 3 attempts
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
       expect(quizState.unlockedFrets).toBe(2);
     });
 
     it('should unlock at exactly 80% accuracy', () => {
       // 80% accuracy (4/5 correct)
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, false, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, false, 2);
       expect(quizState.unlockedFrets).toBe(2);
     });
 
     it('should unlock at exactly 3 second average', () => {
-      quizState.recordAttempt(0, true, 3);
-      quizState.recordAttempt(0, true, 3);
-      quizState.recordAttempt(0, true, 3);
+      quizState.recordAttempt(6, 0, true, 3);
+      quizState.recordAttempt(6, 0, true, 3);
+      quizState.recordAttempt(6, 0, true, 3);
       expect(quizState.unlockedFrets).toBe(2);
     });
   });
@@ -300,43 +300,51 @@ describe('ProgressiveQuizState', () => {
   describe('Progressive Unlocking', () => {
     it('should require ALL unlocked notes to meet criteria', () => {
       // Unlock fret 1 first
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
       expect(quizState.unlockedFrets).toBe(2);
 
       // Now fret 1 needs to meet criteria too
       // Just practicing fret 1 shouldn't unlock fret 2 yet if fret 0 drops below
-      quizState.recordAttempt(0, false, 2); // drop fret 0 below 80%
-      quizState.recordAttempt(1, true, 2);
-      quizState.recordAttempt(1, true, 2);
-      quizState.recordAttempt(1, true, 2);
+      quizState.recordAttempt(6, 0, false, 2); // drop fret 0 below 80%
+      quizState.recordAttempt(6, 1, true, 2);
+      quizState.recordAttempt(6, 1, true, 2);
+      quizState.recordAttempt(6, 1, true, 2);
       expect(quizState.unlockedFrets).toBe(2); // Still 2, not 3
     });
 
     it('should unlock fret 2 when frets 0 and 1 both meet criteria', () => {
       // Perfect performance on fret 0
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
       expect(quizState.unlockedFrets).toBe(2);
 
       // Perfect performance on fret 1
-      quizState.recordAttempt(1, true, 2);
-      quizState.recordAttempt(1, true, 2);
-      quizState.recordAttempt(1, true, 2);
+      quizState.recordAttempt(6, 1, true, 2);
+      quizState.recordAttempt(6, 1, true, 2);
+      quizState.recordAttempt(6, 1, true, 2);
       expect(quizState.unlockedFrets).toBe(3);
     });
 
     it('should eventually unlock all 12 notes', () => {
       // Unlock all notes with perfect performance
-      for (let fret = 0; fret < 12; fret++) {
-        quizState.recordAttempt(fret, true, 2);
-        quizState.recordAttempt(fret, true, 2);
-        quizState.recordAttempt(fret, true, 2);
+      // Each round: practice all unlocked frets, ensuring each gets 3+ attempts
+      while (quizState.unlockedFrets < 12) {
+        const unlocked = quizState.unlockedFrets;
+        // Give all currently unlocked frets enough attempts to meet criteria
+        for (let fret = 0; fret < unlocked; fret++) {
+          // Ensure at least minAttemptsToUnlock (3) attempts per fret
+          const perf = quizState.getPerformanceData(6, fret)!;
+          const attemptsNeeded = Math.max(0, 3 - perf.attempts);
+          for (let i = 0; i < attemptsNeeded; i++) {
+            quizState.recordAttempt(6, fret, true, 2);
+          }
+        }
       }
       expect(quizState.unlockedFrets).toBe(12);
-      expect(quizState.allNotesUnlocked).toBe(true);
+      expect(quizState.currentStringComplete).toBe(true);
     });
   });
 
@@ -385,34 +393,34 @@ describe('ProgressiveQuizState', () => {
 
   describe('Serialization', () => {
     it('should serialize to JSON', () => {
-      quizState.recordAttempt(0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
       const json = quizState.toJSON();
       
       expect(json.config).toEqual(quizState.config);
       expect(json.unlockedFrets).toBe(quizState.unlockedFrets);
-      expect(json.performance[0]).toBeDefined();
-      expect(json.performance[0].attempts).toBe(1);
+      expect(json.performance[6]).toBeDefined();
+      expect(json.performance[6][0].attempts).toBe(1);
     });
 
     it('should deserialize from JSON', () => {
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
-      quizState.recordAttempt(0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
       
       const json = quizState.toJSON();
       const restored = ProgressiveQuizState.fromJSON(json);
       
       expect(restored.unlockedFrets).toBe(quizState.unlockedFrets);
       expect(restored.config).toEqual(quizState.config);
-      expect(restored.getPerformanceData(0)!.attempts).toBe(3);
+      expect(restored.getPerformanceData(6, 0)!.attempts).toBe(3);
     });
 
     it('should round-trip preserve unlocked frets', () => {
       // Unlock a few frets
       for (let fret = 0; fret < 3; fret++) {
-        quizState.recordAttempt(fret, true, 2);
-        quizState.recordAttempt(fret, true, 2);
-        quizState.recordAttempt(fret, true, 2);
+        quizState.recordAttempt(6, fret, true, 2);
+        quizState.recordAttempt(6, fret, true, 2);
+        quizState.recordAttempt(6, fret, true, 2);
       }
       
       const json = quizState.toJSON();
@@ -430,10 +438,10 @@ describe('ProgressiveQuizState', () => {
     });
 
     it('should clear all performance data', () => {
-      quizState.recordAttempt(0, true, 2);
+      quizState.recordAttempt(6, 0, true, 2);
       quizState.reset();
       
-      const perf = quizState.getPerformanceData(0);
+      const perf = quizState.getPerformanceData(6, 0);
       expect(perf!.attempts).toBe(0);
       expect(perf!.correct).toBe(0);
       expect(perf!.answerTimes).toEqual([]);

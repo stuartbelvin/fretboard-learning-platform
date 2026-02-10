@@ -33,6 +33,10 @@ export interface NoteProgressDisplayProps {
   useFlats?: boolean;
   /** Minimum attempts needed to consider a note "learned" (for color progression) */
   minAttemptsForLearned?: number;
+  /** Optional: ordered list of notes to display (defaults to chromatic C-B) */
+  orderedNotes?: PitchClass[];
+  /** Optional: label for the string (e.g., "Low E", "A") */
+  stringLabel?: string;
 }
 
 /**
@@ -107,7 +111,7 @@ function getAccuracyColor(accuracy: number, attempts: number, minAttemptsForLear
 /**
  * NoteProgressDisplay Component
  * 
- * Displays a horizontal row of boxes representing each of the 12 pitch classes.
+ * Displays a horizontal row of boxes representing notes on a string.
  * Each box shows the note name and indicates the user's progress:
  * - Locked (crossed out): Note not yet available
  * - No data (grey): Unlocked but no attempts yet
@@ -121,11 +125,19 @@ export function NoteProgressDisplay({
   focusedNote,
   useFlats = false,
   minAttemptsForLearned = 5,
+  orderedNotes,
+  stringLabel,
 }: NoteProgressDisplayProps) {
+  // Use provided order or default to chromatic order
+  const notesToDisplay = orderedNotes ?? ALL_PITCH_CLASSES;
+  
   return (
     <div className="note-progress-display">
+      {stringLabel && (
+        <div className="note-progress-label">{stringLabel}</div>
+      )}
       <div className="note-progress-boxes">
-        {ALL_PITCH_CLASSES.map((pitchClass) => {
+        {notesToDisplay.map((pitchClass, index) => {
           const performance = notePerformance.get(pitchClass);
           const isUnlocked = unlockedNotes.has(pitchClass);
           const status = getNoteStatus(pitchClass, performance, isUnlocked);
@@ -153,11 +165,12 @@ export function NoteProgressDisplay({
           
           return (
             <div
-              key={pitchClass}
+              key={orderedNotes ? `${index}-${pitchClass}` : pitchClass}
               className={classNames}
               style={style}
               title={getTooltip(pitchClass, performance, isUnlocked)}
               data-pitch-class={pitchClass}
+              data-fret={orderedNotes ? index : undefined}
             >
               <span className="note-box__name">{displayName}</span>
               {status === 'locked' && (

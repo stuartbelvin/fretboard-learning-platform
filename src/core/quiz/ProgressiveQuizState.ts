@@ -1,12 +1,10 @@
 /**
  * ProgressiveQuizState - Manages progressive difficulty for note quiz
  * 
- * Tracks per-note performance (accuracy + timing) and determines which notes
- * are unlocked based on performance thresholds.
- * 
- * Notes are unlocked sequentially starting from the open E string (E2),
- * progressing up the frets: E, F, F#, G, G#, A, A#, B, C, C#, D, D#
- * (frets 0-11 on the low E string)
+ * Supports multi-string progression:
+ * - String 6 (low E) → String 5 (A) → String 4 (D) → String 3 (G) → String 2 (B) → String 1 (high E)
+ * - Each string has its own progress, starting with the open string and advancing one fret at a time
+ * - 80% of questions come from the current learning string, 20% from already-learned strings
  */
 
 import type { PitchClass } from '../music-theory/Note';
@@ -17,7 +15,6 @@ import type { PitchClass } from '../music-theory/Note';
 
 /**
  * Configuration for progressive difficulty thresholds.
- * These values can be adjusted to tune the difficulty progression.
  */
 export interface ProgressiveQuizConfig {
   /** Minimum accuracy % required to unlock next note (default: 80) */
@@ -38,21 +35,24 @@ export interface ProgressiveQuizConfig {
   strugglingAccuracyThreshold: number;
   /** Minimum attempts before note is considered "learned" (default: 5) */
   minAttemptsForLearned: number;
+  /** Probability of getting a question from the current learning string (default: 0.8) */
+  currentStringProbability: number;
 }
 
 /**
  * Default progressive quiz configuration.
  */
 export const DEFAULT_PROGRESSIVE_CONFIG: ProgressiveQuizConfig = {
-  accuracyThreshold: 80,        // 80% accuracy required
-  averageTimeThreshold: 3,      // Under 3 seconds average
-  maxAnswerTimeToCount: 20,     // Ignore answers over 20 seconds
-  minAttemptsToUnlock: 3,       // At least 3 attempts before unlocking
-  nextNoteDelay: 800,           // 800ms delay before next note (more visible feedback)
-  lowAccuracyWeight: 2.0,       // Notes with low accuracy appear 2x more often
-  unlearnedNoteWeight: 2.0,     // New/unlearned notes appear 2x more often
-  strugglingAccuracyThreshold: 70, // Notes below 70% accuracy are "struggling"
-  minAttemptsForLearned: 3,     // Need 3+ attempts to be considered "learned"
+  accuracyThreshold: 80,
+  averageTimeThreshold: 3,
+  maxAnswerTimeToCount: 20,
+  minAttemptsToUnlock: 3,
+  nextNoteDelay: 800,
+  lowAccuracyWeight: 2.0,
+  unlearnedNoteWeight: 2.0,
+  strugglingAccuracyThreshold: 70,
+  minAttemptsForLearned: 3,
+  currentStringProbability: 0.8,
 };
 
 // ============================================================================
@@ -60,7 +60,7 @@ export const DEFAULT_PROGRESSIVE_CONFIG: ProgressiveQuizConfig = {
 // ============================================================================
 
 /**
- * Performance data for a single note position (fret on E string).
+ * Performance data for a single note position.
  */
 export interface NotePerformanceData {
   /** Total number of attempts for this note */
@@ -74,18 +74,26 @@ export interface NotePerformanceData {
 }
 
 /**
- * Complete performance tracking for all E string notes.
+ * Performance tracking for a single string.
  * Key is the fret number (0-11).
  */
-export type EStringPerformance = Map<number, NotePerformanceData>;
+export type StringPerformance = Map<number, NotePerformanceData>;
+
+/**
+ * Performance tracking for all strings.
+ * Key is the string number (1-6).
+ */
+export type AllStringsPerformance = Map<number, StringPerformance>;
 
 /**
  * Computed statistics for a note.
  */
 export interface NoteStats {
+  /** String number (1-6) */
+  string: number;
   /** Fret number (0-11) */
   fret: number;
-  /** Pitch class at this fret */
+  /** Pitch class at this position */
   pitchClass: PitchClass;
   /** Current accuracy percentage (0-100) */
   accuracy: number;
@@ -102,36 +110,83 @@ export interface NoteStats {
 }
 
 /**
- * E string notes in order from fret 0 to fret 11.
+ * String progression order (from low E to high E).
+ * Guitar strings are numbered 1 (high E) to 6 (low E), but we learn low to high.
  */
-export const E_STRING_NOTES: PitchClass[] = [
-  'E',   // Fret 0 (open string)
-  'F',   // Fret 1
-  'F#',  // Fret 2
-  'G',   // Fret 3
-  'G#',  // Fret 4
-  'A',   // Fret 5
-  'A#',  // Fret 6
-  'B',   // Fret 7
-  'C',   // Fret 8
-  'C#',  // Fret 9
-  'D',   // Fret 10
-  'D#',  // Fret 11
-];
+export const STRING_PROGRESSION: number[] = [6, 5, 4, 3, 2, 1];
 
 /**
- * Get the pitch class for a fret on the E string.
+ * String names for display.
  */
-export function getPitchClassForFret(fret: number): PitchClass {
-  if (fret < 0 || fret > 11) {
-    throw new Error(`Fret must be between 0 and 11, got ${fret}`);
+export const STRING_NAMES: Record<number, string> = {
+  6: 'Low E',
+  5: 'A',
+  4: 'D',
+  3: 'G',
+  2: 'B',
+  1: 'High E',
+};
+
+/**
+ * Open string pitch classes for each string (in standard tuning).
+ */
+export const STRING_OPEN_NOTES: Record<number, PitchClass> = {
+  6: 'E',  // Low E string
+  5: 'A',
+  4: 'D',
+  3: 'G',
+  2: 'B',
+  1: 'E',  // High E string
+};
+
+/**
+ * Notes on each string from fret 0 to fret 11.
+ * Derived from the chromatic scale starting at the open string note.
+ */
+const CHROMATIC: PitchClass[] = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+function getStringNotes(openNote: PitchClass): PitchClass[] {
+  const startIndex = CHROMATIC.indexOf(openNote);
+  const notes: PitchClass[] = [];
+  for (let i = 0; i < 12; i++) {
+    notes.push(CHROMATIC[(startIndex + i) % 12]);
   }
-  return E_STRING_NOTES[fret];
+  return notes;
 }
 
 /**
- * Get the fret number for a pitch class on the E string (first occurrence).
+ * Pre-computed notes for each string (frets 0-11).
  */
+export const STRING_NOTES: Record<number, PitchClass[]> = {
+  6: getStringNotes('E'),  // E, F, F#, G, G#, A, A#, B, C, C#, D, D#
+  5: getStringNotes('A'),  // A, A#, B, C, C#, D, D#, E, F, F#, G, G#
+  4: getStringNotes('D'),  // D, D#, E, F, F#, G, G#, A, A#, B, C, C#
+  3: getStringNotes('G'),  // G, G#, A, A#, B, C, C#, D, D#, E, F, F#
+  2: getStringNotes('B'),  // B, C, C#, D, D#, E, F, F#, G, G#, A, A#
+  1: getStringNotes('E'),  // E, F, F#, G, G#, A, A#, B, C, C#, D, D#
+};
+
+// Legacy E_STRING_NOTES for backward compatibility
+export const E_STRING_NOTES: PitchClass[] = STRING_NOTES[6];
+
+/**
+ * Get the pitch class for a fret on a specific string.
+ */
+export function getPitchClassForPosition(string: number, fret: number): PitchClass {
+  if (fret < 0 || fret > 11) {
+    throw new Error(`Fret must be between 0 and 11, got ${fret}`);
+  }
+  if (string < 1 || string > 6) {
+    throw new Error(`String must be between 1 and 6, got ${string}`);
+  }
+  return STRING_NOTES[string][fret];
+}
+
+// Legacy function for backward compatibility
+export function getPitchClassForFret(fret: number): PitchClass {
+  return getPitchClassForPosition(6, fret);
+}
+
 export function getFretForPitchClass(pitchClass: PitchClass): number {
   const index = E_STRING_NOTES.indexOf(pitchClass);
   if (index === -1) {
@@ -147,35 +202,60 @@ export function getFretForPitchClass(pitchClass: PitchClass): number {
 /**
  * Manages the progressive difficulty state for the note quiz.
  * 
- * The quiz starts with only fret 0 (E) unlocked. As the user demonstrates
- * mastery (accuracy >= threshold AND average time < threshold), the next
- * note is unlocked.
+ * Multi-string progression:
+ * - Starts with String 6 (low E), only fret 0 unlocked
+ * - As each string is mastered, the next string unlocks
+ * - 80% questions from current learning string, 20% from learned strings
  */
 export class ProgressiveQuizState {
-  private _performance: EStringPerformance;
+  private _performance: AllStringsPerformance;
   private _config: ProgressiveQuizConfig;
-  private _unlockedFrets: number;
+  /** Number of unlocked frets per string (1 = only fret 0, 12 = all frets) */
+  private _unlockedFretsPerString: Map<number, number>;
+  /** Index into STRING_PROGRESSION for the current learning string (0 = string 6) */
+  private _currentStringIndex: number;
 
   constructor(
     config: Partial<ProgressiveQuizConfig> = {},
-    initialPerformance?: EStringPerformance,
-    initialUnlockedFrets?: number
+    initialPerformance?: AllStringsPerformance,
+    initialUnlockedFretsPerString?: Map<number, number>,
+    initialCurrentStringIndex?: number
   ) {
     this._config = { ...DEFAULT_PROGRESSIVE_CONFIG, ...config };
     this._performance = initialPerformance || new Map();
+    this._unlockedFretsPerString = initialUnlockedFretsPerString || new Map();
+    this._currentStringIndex = initialCurrentStringIndex ?? 0;
     
-    // Initialize with at least fret 0 unlocked
-    this._unlockedFrets = initialUnlockedFrets ?? 1;
-    
-    // Initialize performance data for all frets
-    for (let fret = 0; fret <= 11; fret++) {
-      if (!this._performance.has(fret)) {
-        this._performance.set(fret, {
-          attempts: 0,
-          correct: 0,
-          answerTimes: [],
-          lastAttemptTime: 0,
-        });
+    // Initialize performance data for all strings
+    for (const stringNum of STRING_PROGRESSION) {
+      if (!this._performance.has(stringNum)) {
+        this._performance.set(stringNum, new Map());
+      }
+      const stringPerf = this._performance.get(stringNum)!;
+      for (let fret = 0; fret <= 11; fret++) {
+        if (!stringPerf.has(fret)) {
+          stringPerf.set(fret, {
+            attempts: 0,
+            correct: 0,
+            answerTimes: [],
+            lastAttemptTime: 0,
+          });
+        }
+      }
+      
+      // Initialize unlocked frets - first string starts with 1 fret, others with 0
+      if (!this._unlockedFretsPerString.has(stringNum)) {
+        const stringIdx = STRING_PROGRESSION.indexOf(stringNum);
+        if (stringIdx === 0) {
+          // First string (low E): start with 1 fret unlocked
+          this._unlockedFretsPerString.set(stringNum, 1);
+        } else if (stringIdx <= this._currentStringIndex) {
+          // Previously mastered strings: all frets unlocked
+          this._unlockedFretsPerString.set(stringNum, 12);
+        } else {
+          // Future strings: no frets unlocked yet
+          this._unlockedFretsPerString.set(stringNum, 0);
+        }
       }
     }
   }
@@ -184,31 +264,94 @@ export class ProgressiveQuizState {
   // Getters
   // ============================================================================
 
-  /** Get the current configuration */
   get config(): ProgressiveQuizConfig {
     return { ...this._config };
   }
 
-  /** Get the number of unlocked frets (1 = only fret 0, 12 = all frets) */
+  /** Get the current learning string number (6 = low E, 1 = high E) */
+  get currentString(): number {
+    return STRING_PROGRESSION[this._currentStringIndex];
+  }
+
+  /** Get the current string index (0-5 in progression order) */
+  get currentStringIndex(): number {
+    return this._currentStringIndex;
+  }
+
+  /** Get the number of unlocked frets for the current learning string */
   get unlockedFrets(): number {
-    return this._unlockedFrets;
+    return this._unlockedFretsPerString.get(this.currentString) ?? 0;
   }
 
-  /** Get the highest unlocked fret index (0-based) */
+  /** Get the number of unlocked frets for a specific string */
+  getUnlockedFretsForString(string: number): number {
+    return this._unlockedFretsPerString.get(string) ?? 0;
+  }
+
+  /** Get the highest unlocked fret index for current string (0-based) */
   get highestUnlockedFret(): number {
-    return this._unlockedFrets - 1;
+    return Math.max(0, this.unlockedFrets - 1);
   }
 
-  /** Check if all notes are unlocked */
-  get allNotesUnlocked(): boolean {
-    return this._unlockedFrets >= 12;
+  /** Check if all notes on current string are unlocked */
+  get currentStringComplete(): boolean {
+    return this.unlockedFrets >= 12;
   }
 
-  /** Get set of unlocked pitch classes */
+  /** Check if all strings are complete */
+  get allStringsComplete(): boolean {
+    return this._currentStringIndex >= STRING_PROGRESSION.length - 1 && this.currentStringComplete;
+  }
+
+  /** Get array of fully mastered (completed) string numbers */
+  get masteredStrings(): number[] {
+    const mastered: number[] = [];
+    for (let i = 0; i < this._currentStringIndex; i++) {
+      mastered.push(STRING_PROGRESSION[i]);
+    }
+    return mastered;
+  }
+
+  /** Get array of unlocked string numbers (includes current learning string) */
+  get unlockedStrings(): number[] {
+    return STRING_PROGRESSION.slice(0, this._currentStringIndex + 1);
+  }
+
+  /** Check if a string is fully mastered */
+  isStringMastered(string: number): boolean {
+    const stringIdx = STRING_PROGRESSION.indexOf(string);
+    return stringIdx < this._currentStringIndex;
+  }
+
+  /** Check if a string is currently being learned */
+  isCurrentLearningString(string: number): boolean {
+    return string === this.currentString;
+  }
+
+  /** Check if a string is unlocked (either mastered or current) */
+  isStringUnlocked(string: number): boolean {
+    const stringIdx = STRING_PROGRESSION.indexOf(string);
+    return stringIdx <= this._currentStringIndex;
+  }
+
+  /** Get set of unlocked pitch classes for the current string */
   get unlockedPitchClasses(): Set<PitchClass> {
     const unlocked = new Set<PitchClass>();
-    for (let fret = 0; fret < this._unlockedFrets; fret++) {
-      unlocked.add(E_STRING_NOTES[fret]);
+    const string = this.currentString;
+    const notes = STRING_NOTES[string];
+    for (let fret = 0; fret < this.unlockedFrets; fret++) {
+      unlocked.add(notes[fret]);
+    }
+    return unlocked;
+  }
+
+  /** Get unlocked pitch classes for a specific string */
+  getUnlockedPitchClassesForString(string: number): Set<PitchClass> {
+    const unlocked = new Set<PitchClass>();
+    const unlockedFrets = this.getUnlockedFretsForString(string);
+    const notes = STRING_NOTES[string];
+    for (let fret = 0; fret < unlockedFrets; fret++) {
+      unlocked.add(notes[fret]);
     }
     return unlocked;
   }
@@ -218,33 +361,32 @@ export class ProgressiveQuizState {
   // ============================================================================
 
   /**
-   * Record an answer attempt for a specific fret.
-   * 
-   * @param fret - The fret number (0-11)
-   * @param correct - Whether the answer was correct
-   * @param answerTimeSeconds - Time taken to answer in seconds
+   * Record an answer attempt for a specific string and fret.
    */
-  recordAttempt(fret: number, correct: boolean, answerTimeSeconds: number): void {
+  recordAttempt(string: number, fret: number, correct: boolean, answerTimeSeconds: number): void {
     if (fret < 0 || fret > 11) {
       throw new Error(`Fret must be between 0 and 11, got ${fret}`);
     }
+    if (string < 1 || string > 6) {
+      throw new Error(`String must be between 1 and 6, got ${string}`);
+    }
 
-    const performance = this._performance.get(fret)!;
+    const stringPerf = this._performance.get(string)!;
+    const performance = stringPerf.get(fret)!;
     
     performance.attempts++;
     if (correct) {
       performance.correct++;
     }
     
-    // Only record answer time if it's below the threshold
     if (answerTimeSeconds <= this._config.maxAnswerTimeToCount) {
       performance.answerTimes.push(answerTimeSeconds);
     }
     
     performance.lastAttemptTime = Date.now();
 
-    // Check if we should unlock the next note
-    this._checkAndUnlockNextNote();
+    // Check if we should unlock the next note or string
+    this._checkAndUnlockNext(string);
   }
 
   // ============================================================================
@@ -252,14 +394,18 @@ export class ProgressiveQuizState {
   // ============================================================================
 
   /**
-   * Get statistics for a specific fret.
+   * Get statistics for a specific position.
    */
-  getNoteStats(fret: number): NoteStats {
+  getNoteStats(string: number, fret: number): NoteStats {
     if (fret < 0 || fret > 11) {
       throw new Error(`Fret must be between 0 and 11, got ${fret}`);
     }
+    if (string < 1 || string > 6) {
+      throw new Error(`String must be between 1 and 6, got ${string}`);
+    }
 
-    const performance = this._performance.get(fret)!;
+    const stringPerf = this._performance.get(string)!;
+    const performance = stringPerf.get(fret)!;
     const accuracy = performance.attempts > 0
       ? (performance.correct / performance.attempts) * 100
       : 0;
@@ -267,12 +413,14 @@ export class ProgressiveQuizState {
       ? performance.answerTimes.reduce((a, b) => a + b, 0) / performance.answerTimes.length
       : null;
     
-    const isUnlocked = fret < this._unlockedFrets;
-    const meetsUnlockCriteria = this._checkUnlockCriteria(fret);
+    const unlockedFrets = this.getUnlockedFretsForString(string);
+    const isUnlocked = fret < unlockedFrets;
+    const meetsUnlockCriteria = this._checkUnlockCriteria(string, fret);
 
     return {
+      string,
       fret,
-      pitchClass: E_STRING_NOTES[fret],
+      pitchClass: STRING_NOTES[string][fret],
       accuracy,
       averageTime,
       attempts: performance.attempts,
@@ -283,20 +431,27 @@ export class ProgressiveQuizState {
   }
 
   /**
-   * Get statistics for all E string notes.
+   * Get statistics for all notes on a specific string.
    */
-  getAllNoteStats(): NoteStats[] {
+  getStringNoteStats(string: number): NoteStats[] {
     const stats: NoteStats[] = [];
     for (let fret = 0; fret <= 11; fret++) {
-      stats.push(this.getNoteStats(fret));
+      stats.push(this.getNoteStats(string, fret));
     }
     return stats;
   }
 
   /**
-   * Get overall statistics across all unlocked notes.
+   * Get statistics for all E string notes (backward compatibility).
    */
-  getOverallStats(): {
+  getAllNoteStats(): NoteStats[] {
+    return this.getStringNoteStats(6);
+  }
+
+  /**
+   * Get overall statistics for a specific string.
+   */
+  getStringOverallStats(string: number): {
     totalAttempts: number;
     totalCorrect: number;
     overallAccuracy: number;
@@ -305,9 +460,11 @@ export class ProgressiveQuizState {
   } {
     let totalAttempts = 0;
     let totalCorrect = 0;
+    const unlockedFrets = this.getUnlockedFretsForString(string);
+    const stringPerf = this._performance.get(string)!;
 
-    for (let fret = 0; fret < this._unlockedFrets; fret++) {
-      const performance = this._performance.get(fret)!;
+    for (let fret = 0; fret < unlockedFrets; fret++) {
+      const performance = stringPerf.get(fret)!;
       totalAttempts += performance.attempts;
       totalCorrect += performance.correct;
     }
@@ -316,23 +473,115 @@ export class ProgressiveQuizState {
       totalAttempts,
       totalCorrect,
       overallAccuracy: totalAttempts > 0 ? (totalCorrect / totalAttempts) * 100 : 0,
-      unlockedNotes: this._unlockedFrets,
+      unlockedNotes: unlockedFrets,
       totalNotes: 12,
     };
   }
 
   /**
-   * Get the raw performance data for a fret.
+   * Get overall statistics across all unlocked notes (backward compatibility).
    */
-  getPerformanceData(fret: number): NotePerformanceData | undefined {
-    return this._performance.get(fret);
+  getOverallStats(): {
+    totalAttempts: number;
+    totalCorrect: number;
+    overallAccuracy: number;
+    unlockedNotes: number;
+    totalNotes: number;
+  } {
+    return this.getStringOverallStats(this.currentString);
   }
 
   /**
-   * Check if a specific fret is unlocked.
+   * Get the raw performance data for a position.
    */
+  getPerformanceData(string: number, fret: number): NotePerformanceData | undefined {
+    return this._performance.get(string)?.get(fret);
+  }
+
+  /**
+   * Check if a specific position is unlocked.
+   */
+  isPositionUnlocked(string: number, fret: number): boolean {
+    if (!this.isStringUnlocked(string)) return false;
+    const unlockedFrets = this.getUnlockedFretsForString(string);
+    return fret >= 0 && fret < unlockedFrets;
+  }
+
+  // Legacy method
   isFretUnlocked(fret: number): boolean {
-    return fret >= 0 && fret < this._unlockedFrets;
+    return this.isPositionUnlocked(6, fret);
+  }
+
+  // ============================================================================
+  // Question Generation
+  // ============================================================================
+
+  /**
+   * Generate a weighted question target.
+   * Returns { string, fret } for the target note.
+   * 
+   * 80% chance: question from current learning string
+   * 20% chance: question from a random previously mastered string
+   */
+  generateQuestionTarget(): { string: number; fret: number } {
+    const masteredStrings = this.masteredStrings;
+    const currentString = this.currentString;
+    const currentUnlockedFrets = this.unlockedFrets;
+
+    // If no mastered strings, always use current string
+    if (masteredStrings.length === 0 || Math.random() < this._config.currentStringProbability) {
+      // Question from current learning string
+      const fret = this._selectWeightedFret(currentString, currentUnlockedFrets);
+      return { string: currentString, fret };
+    } else {
+      // Question from a random mastered string (20% of the time)
+      const randomMasteredString = masteredStrings[Math.floor(Math.random() * masteredStrings.length)];
+      // Mastered strings have all 12 frets unlocked
+      const fret = this._selectWeightedFret(randomMasteredString, 12);
+      return { string: randomMasteredString, fret };
+    }
+  }
+
+  /**
+   * Select a fret using weighted random selection based on performance.
+   */
+  private _selectWeightedFret(string: number, maxFret: number): number {
+    const stringPerf = this._performance.get(string)!;
+    const weights: number[] = [];
+    let totalWeight = 0;
+
+    for (let fret = 0; fret < maxFret; fret++) {
+      const perf = stringPerf.get(fret)!;
+      let weight = 1;
+
+      if (perf.attempts < this._config.minAttemptsForLearned) {
+        // Unlearned note - boost weight
+        weight *= this._config.unlearnedNoteWeight;
+      } else {
+        const accuracy = (perf.correct / perf.attempts) * 100;
+        if (accuracy < this._config.strugglingAccuracyThreshold) {
+          // Struggling note - boost weight
+          const struggleFactor = (this._config.strugglingAccuracyThreshold - accuracy) / this._config.strugglingAccuracyThreshold;
+          weight *= 1 + (this._config.lowAccuracyWeight - 1) * struggleFactor;
+        } else if (accuracy >= this._config.accuracyThreshold) {
+          // Mastered note - reduce weight
+          weight *= 0.5;
+        }
+      }
+
+      weights.push(weight);
+      totalWeight += weight;
+    }
+
+    // Weighted random selection
+    let random = Math.random() * totalWeight;
+    for (let fret = 0; fret < maxFret; fret++) {
+      random -= weights[fret];
+      if (random <= 0) {
+        return fret;
+      }
+    }
+    return maxFret - 1;
   }
 
   // ============================================================================
@@ -340,28 +589,23 @@ export class ProgressiveQuizState {
   // ============================================================================
 
   /**
-   * Check if a fret meets the unlock criteria.
-   * A fret meets the criteria if:
-   * - Accuracy >= accuracyThreshold
-   * - Average answer time <= averageTimeThreshold
-   * - At least minAttemptsToUnlock attempts
+   * Check if a position meets the unlock criteria.
    */
-  private _checkUnlockCriteria(fret: number): boolean {
-    const performance = this._performance.get(fret);
+  private _checkUnlockCriteria(string: number, fret: number): boolean {
+    const stringPerf = this._performance.get(string);
+    if (!stringPerf) return false;
+    const performance = stringPerf.get(fret);
     if (!performance) return false;
 
-    // Must have minimum attempts
     if (performance.attempts < this._config.minAttemptsToUnlock) {
       return false;
     }
 
-    // Check accuracy
     const accuracy = (performance.correct / performance.attempts) * 100;
     if (accuracy < this._config.accuracyThreshold) {
       return false;
     }
 
-    // Check average time (need at least one valid time)
     if (performance.answerTimes.length === 0) {
       return false;
     }
@@ -374,40 +618,69 @@ export class ProgressiveQuizState {
   }
 
   /**
-   * Check all unlocked notes to see if we should unlock the next note.
-   * The next note is unlocked when ALL previously unlocked notes meet the criteria.
+   * Check if all unlocked notes on a string meet unlock criteria.
    */
-  private _checkAndUnlockNextNote(): void {
-    // If all notes are already unlocked, nothing to do
-    if (this._unlockedFrets >= 12) {
-      return;
-    }
-
-    // Check if ALL currently unlocked notes meet the criteria
-    for (let fret = 0; fret < this._unlockedFrets; fret++) {
-      if (!this._checkUnlockCriteria(fret)) {
-        return; // At least one note doesn't meet criteria
+  private _allUnlockedNotesMeetCriteria(string: number): boolean {
+    const unlockedFrets = this.getUnlockedFretsForString(string);
+    for (let fret = 0; fret < unlockedFrets; fret++) {
+      if (!this._checkUnlockCriteria(string, fret)) {
+        return false;
       }
     }
-
-    // All unlocked notes meet criteria - unlock the next note
-    this._unlockedFrets++;
+    return true;
   }
 
   /**
-   * Force unlock a specific number of frets (for testing or admin purposes).
+   * Check and unlock next note or string if criteria are met.
+   */
+  private _checkAndUnlockNext(string: number): void {
+    // Only check the string that was just practiced
+    if (!this._allUnlockedNotesMeetCriteria(string)) {
+      return;
+    }
+
+    const unlockedFrets = this.getUnlockedFretsForString(string);
+    
+    if (unlockedFrets < 12) {
+      // Unlock the next fret on this string
+      this._unlockedFretsPerString.set(string, unlockedFrets + 1);
+    } else if (string === this.currentString && this._currentStringIndex < STRING_PROGRESSION.length - 1) {
+      // String is complete, unlock the next string
+      this._currentStringIndex++;
+      const nextString = STRING_PROGRESSION[this._currentStringIndex];
+      // Start the new string with 1 fret unlocked (open string)
+      this._unlockedFretsPerString.set(nextString, 1);
+    }
+  }
+
+  /**
+   * Force unlock a specific number of frets on the current string (for testing).
    */
   forceUnlock(numFrets: number): void {
-    this._unlockedFrets = Math.max(1, Math.min(12, numFrets));
+    this._unlockedFretsPerString.set(this.currentString, Math.max(1, Math.min(12, numFrets)));
+  }
+
+  /**
+   * Force advance to a specific string (for testing).
+   */
+  forceStringIndex(index: number): void {
+    const newIndex = Math.max(0, Math.min(STRING_PROGRESSION.length - 1, index));
+    this._currentStringIndex = newIndex;
+    // Unlock all frets on mastered strings
+    for (let i = 0; i < newIndex; i++) {
+      this._unlockedFretsPerString.set(STRING_PROGRESSION[i], 12);
+    }
+    // Initialize current string with at least 1 fret
+    const currentString = STRING_PROGRESSION[newIndex];
+    if ((this._unlockedFretsPerString.get(currentString) ?? 0) < 1) {
+      this._unlockedFretsPerString.set(currentString, 1);
+    }
   }
 
   // ============================================================================
   // Configuration
   // ============================================================================
 
-  /**
-   * Update the configuration.
-   */
   updateConfig(config: Partial<ProgressiveQuizConfig>): void {
     this._config = { ...this._config, ...config };
   }
@@ -416,54 +689,108 @@ export class ProgressiveQuizState {
   // Serialization
   // ============================================================================
 
-  /**
-   * Serialize state for persistence.
-   */
   toJSON(): {
     config: ProgressiveQuizConfig;
-    performance: Record<number, NotePerformanceData>;
+    performance: Record<number, Record<number, NotePerformanceData>>;
+    unlockedFretsPerString: Record<number, number>;
+    currentStringIndex: number;
+    // Legacy fields for backward compatibility
     unlockedFrets: number;
   } {
-    const performanceObj: Record<number, NotePerformanceData> = {};
-    for (const [fret, data] of this._performance) {
-      performanceObj[fret] = { ...data };
+    const performanceObj: Record<number, Record<number, NotePerformanceData>> = {};
+    for (const [string, stringPerf] of this._performance) {
+      performanceObj[string] = {};
+      for (const [fret, data] of stringPerf) {
+        performanceObj[string][fret] = { ...data };
+      }
+    }
+
+    const unlockedFretsObj: Record<number, number> = {};
+    for (const [string, frets] of this._unlockedFretsPerString) {
+      unlockedFretsObj[string] = frets;
     }
 
     return {
       config: { ...this._config },
       performance: performanceObj,
-      unlockedFrets: this._unlockedFrets,
+      unlockedFretsPerString: unlockedFretsObj,
+      currentStringIndex: this._currentStringIndex,
+      // Legacy field: unlocked frets for E string (string 6)
+      unlockedFrets: this._unlockedFretsPerString.get(6) ?? 1,
     };
   }
 
-  /**
-   * Create a ProgressiveQuizState from serialized data.
-   */
   static fromJSON(data: ReturnType<ProgressiveQuizState['toJSON']>): ProgressiveQuizState {
-    const performance = new Map<number, NotePerformanceData>();
-    for (const [fret, perfData] of Object.entries(data.performance)) {
-      performance.set(Number(fret), { ...perfData });
+    const performance = new Map<number, StringPerformance>();
+    
+    // Check if this is the new format (with per-string data) or legacy format
+    if (data.performance && typeof data.performance === 'object') {
+      // Check if first key is a string number (new format) or fret number (legacy)
+      const firstKey = Object.keys(data.performance)[0];
+      if (firstKey && data.performance[Number(firstKey)] && typeof data.performance[Number(firstKey)] === 'object') {
+        // Check if it's nested (new format) or flat (legacy)
+        const firstValue = data.performance[Number(firstKey)];
+        if ('attempts' in firstValue) {
+          // Legacy format: flat structure for E string only
+          const eStringPerf = new Map<number, NotePerformanceData>();
+          for (const [fret, perfData] of Object.entries(data.performance as unknown as Record<number, NotePerformanceData>)) {
+            eStringPerf.set(Number(fret), { ...perfData as NotePerformanceData });
+          }
+          performance.set(6, eStringPerf);
+        } else {
+          // New format: nested per-string structure
+          for (const [string, stringData] of Object.entries(data.performance)) {
+            const stringPerf = new Map<number, NotePerformanceData>();
+            for (const [fret, perfData] of Object.entries(stringData as Record<number, NotePerformanceData>)) {
+              stringPerf.set(Number(fret), { ...perfData });
+            }
+            performance.set(Number(string), stringPerf);
+          }
+        }
+      }
+    }
+
+    const unlockedFretsPerString = new Map<number, number>();
+    if (data.unlockedFretsPerString) {
+      for (const [string, frets] of Object.entries(data.unlockedFretsPerString)) {
+        unlockedFretsPerString.set(Number(string), frets as number);
+      }
+    } else if (data.unlockedFrets !== undefined) {
+      // Legacy: only E string data
+      unlockedFretsPerString.set(6, data.unlockedFrets);
     }
 
     return new ProgressiveQuizState(
       data.config,
-      performance,
-      data.unlockedFrets
+      performance.size > 0 ? performance : undefined,
+      unlockedFretsPerString.size > 0 ? unlockedFretsPerString : undefined,
+      data.currentStringIndex ?? 0
     );
   }
 
   /**
-   * Reset all progress (for starting over).
+   * Reset all progress.
    */
   reset(): void {
-    this._unlockedFrets = 1;
-    for (let fret = 0; fret <= 11; fret++) {
-      this._performance.set(fret, {
-        attempts: 0,
-        correct: 0,
-        answerTimes: [],
-        lastAttemptTime: 0,
-      });
+    this._currentStringIndex = 0;
+    
+    for (const stringNum of STRING_PROGRESSION) {
+      const stringPerf = this._performance.get(stringNum)!;
+      for (let fret = 0; fret <= 11; fret++) {
+        stringPerf.set(fret, {
+          attempts: 0,
+          correct: 0,
+          answerTimes: [],
+          lastAttemptTime: 0,
+        });
+      }
+      
+      // Reset unlocked frets
+      if (stringNum === 6) {
+        this._unlockedFretsPerString.set(stringNum, 1);
+      } else {
+        this._unlockedFretsPerString.set(stringNum, 0);
+      }
     }
   }
 }

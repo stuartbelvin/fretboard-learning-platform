@@ -209,13 +209,19 @@ export interface SavedZone {
 
 /**
  * Progressive quiz performance state (persisted)
+ * Supports multiple strings with per-string performance tracking.
  */
 export interface ProgressiveQuizPerformance {
   /** Configuration for progressive difficulty thresholds */
   config: ProgressiveQuizConfig;
-  /** Performance data per fret (0-11 on E string) */
-  performance: Record<number, NotePerformanceData>;
-  /** Number of frets currently unlocked (1-12) */
+  /** Performance data per string, per fret. Key is string number (1-6), value is fret->performance */
+  performance: Record<number, Record<number, NotePerformanceData>>;
+  /** Number of frets currently unlocked per string. Key is string number (1-6) */
+  unlockedFretsPerString: Record<number, number>;
+  /** Index into STRING_PROGRESSION (0=string 6/low E, 5=string 1/high E) */
+  currentStringIndex: number;
+  // Legacy fields for backward compatibility
+  /** @deprecated Use unlockedFretsPerString[6] instead */
   unlockedFrets: number;
 }
 
@@ -225,7 +231,9 @@ export interface ProgressiveQuizPerformance {
 export const DEFAULT_PROGRESSIVE_QUIZ_PERFORMANCE: ProgressiveQuizPerformance = {
   config: DEFAULT_PROGRESSIVE_CONFIG,
   performance: {},
-  unlockedFrets: 1,
+  unlockedFretsPerString: { 6: 1 },  // Start with E string, fret 0 unlocked
+  currentStringIndex: 0,  // Start with first string (low E)
+  unlockedFrets: 1,  // Legacy field
 };
 
 /**
@@ -277,10 +285,11 @@ export interface AppState {
   toggleZoneEnabled: (id: string) => void;
   
   // Progressive quiz actions
-  recordProgressiveAttempt: (fret: number, correct: boolean, answerTimeSeconds: number) => void;
+  recordProgressiveAttempt: (string: number, fret: number, correct: boolean, answerTimeSeconds: number) => void;
   updateProgressiveConfig: (config: Partial<ProgressiveQuizConfig>) => void;
   resetProgressiveQuiz: () => void;
   forceUnlockFrets: (numFrets: number) => void;
+  forceStringIndex: (index: number) => void;
   
   // Global actions
   resetToDefaults: () => void;
@@ -555,15 +564,18 @@ export const useAppStore = create<AppState>()(
       })),
       
       // ====================================================================
-      // Progressive Quiz Actions
+      // Progressive Quiz Actions (Multi-string support)
       // ====================================================================
       
-      recordProgressiveAttempt: (fret: number, correct: boolean, answerTimeSeconds: number) => 
+      recordProgressiveAttempt: (string: number, fret: number, correct: boolean, answerTimeSeconds: number) => 
         set((state) => {
-          const { config, performance, unlockedFrets } = state.progressiveQuiz;
+          const { config, performance, unlockedFretsPerString, currentStringIndex } = state.progressiveQuiz;
+          const STRING_PROGRESSION = [6, 5, 4, 3, 2, 1];
+          const currentString = STRING_PROGRESSION[currentStringIndex];
           
-          // Get or initialize performance data for this fret
-          const fretPerf = performance[fret] || {
+          // Get or initialize performance data for this string
+          const stringPerf = performance[string] || {};
+          const fretPerf = stringPerf[fret] || {
             attempts: 0,
             correct: 0,
             answerTimes: [],
@@ -571,7 +583,7 @@ export const useAppStore = create<AppState>()(
           };
           
           // Update performance
-          const newPerf = {
+          const newFretPerf = {
             ...fretPerf,
             attempts: fretPerf.attempts + 1,
             correct: fretPerf.correct + (correct ? 1 : 0),
@@ -581,15 +593,20 @@ export const useAppStore = create<AppState>()(
             lastAttemptTime: Date.now(),
           };
           
-          const newPerformance = { ...performance, [fret]: newPerf };
+          const newStringPerf = { ...stringPerf, [fret]: newFretPerf };
+          const newPerformance = { ...performance, [string]: newStringPerf };
           
-          // Check if we should unlock the next fret
-          let newUnlockedFrets = unlockedFrets;
+          // Get current unlocked frets for this string
+          const unlockedFrets = unlockedFretsPerString[string] ?? (string === 6 ? 1 : 0);
+          let newUnlockedFretsPerString = { ...unlockedFretsPerString };
+          let newCurrentStringIndex = currentStringIndex;
+          
+          // Check if we should unlock the next fret on this string
           if (unlockedFrets < 12) {
-            // Check if ALL currently unlocked frets meet criteria
+            // Check if ALL currently unlocked frets on this string meet criteria
             let allMeetCriteria = true;
             for (let f = 0; f < unlockedFrets; f++) {
-              const p = newPerformance[f];
+              const p = newStringPerf[f];
               if (!p || p.attempts < config.minAttemptsToUnlock) {
                 allMeetCriteria = false;
                 break;
@@ -610,7 +627,37 @@ export const useAppStore = create<AppState>()(
               }
             }
             if (allMeetCriteria) {
-              newUnlockedFrets = unlockedFrets + 1;
+              newUnlockedFretsPerString[string] = unlockedFrets + 1;
+            }
+          } else if (string === currentString && currentStringIndex < STRING_PROGRESSION.length - 1) {
+            // String is complete, check if we should unlock next string
+            // All 12 frets must meet criteria
+            let allMeetCriteria = true;
+            for (let f = 0; f < 12; f++) {
+              const p = newStringPerf[f];
+              if (!p || p.attempts < config.minAttemptsToUnlock) {
+                allMeetCriteria = false;
+                break;
+              }
+              const accuracy = (p.correct / p.attempts) * 100;
+              if (accuracy < config.accuracyThreshold) {
+                allMeetCriteria = false;
+                break;
+              }
+              if (p.answerTimes.length === 0) {
+                allMeetCriteria = false;
+                break;
+              }
+              const avgTime = p.answerTimes.reduce((a, b) => a + b, 0) / p.answerTimes.length;
+              if (avgTime > config.averageTimeThreshold) {
+                allMeetCriteria = false;
+                break;
+              }
+            }
+            if (allMeetCriteria) {
+              newCurrentStringIndex = currentStringIndex + 1;
+              const nextString = STRING_PROGRESSION[newCurrentStringIndex];
+              newUnlockedFretsPerString[nextString] = 1; // Start with open string
             }
           }
           
@@ -618,7 +665,10 @@ export const useAppStore = create<AppState>()(
             progressiveQuiz: {
               ...state.progressiveQuiz,
               performance: newPerformance,
-              unlockedFrets: newUnlockedFrets,
+              unlockedFretsPerString: newUnlockedFretsPerString,
+              currentStringIndex: newCurrentStringIndex,
+              // Legacy field: E string unlocked frets
+              unlockedFrets: newUnlockedFretsPerString[6] ?? 1,
             },
           };
         }),
@@ -635,12 +685,46 @@ export const useAppStore = create<AppState>()(
         progressiveQuiz: DEFAULT_PROGRESSIVE_QUIZ_PERFORMANCE,
       }),
       
-      forceUnlockFrets: (numFrets: number) => set((state) => ({
-        progressiveQuiz: {
-          ...state.progressiveQuiz,
-          unlockedFrets: Math.max(1, Math.min(12, numFrets)),
-        },
-      })),
+      forceUnlockFrets: (numFrets: number) => set((state) => {
+        const STRING_PROGRESSION = [6, 5, 4, 3, 2, 1];
+        const currentString = STRING_PROGRESSION[state.progressiveQuiz.currentStringIndex];
+        return {
+          progressiveQuiz: {
+            ...state.progressiveQuiz,
+            unlockedFretsPerString: {
+              ...state.progressiveQuiz.unlockedFretsPerString,
+              [currentString]: Math.max(1, Math.min(12, numFrets)),
+            },
+            unlockedFrets: currentString === 6 ? Math.max(1, Math.min(12, numFrets)) : state.progressiveQuiz.unlockedFrets,
+          },
+        };
+      }),
+      
+      forceStringIndex: (index: number) => set((state) => {
+        const STRING_PROGRESSION = [6, 5, 4, 3, 2, 1];
+        const newIndex = Math.max(0, Math.min(STRING_PROGRESSION.length - 1, index));
+        const newUnlockedFretsPerString = { ...state.progressiveQuiz.unlockedFretsPerString };
+        
+        // Unlock all frets on mastered strings
+        for (let i = 0; i < newIndex; i++) {
+          newUnlockedFretsPerString[STRING_PROGRESSION[i]] = 12;
+        }
+        
+        // Initialize current string with at least 1 fret
+        const currentString = STRING_PROGRESSION[newIndex];
+        if ((newUnlockedFretsPerString[currentString] ?? 0) < 1) {
+          newUnlockedFretsPerString[currentString] = 1;
+        }
+        
+        return {
+          progressiveQuiz: {
+            ...state.progressiveQuiz,
+            currentStringIndex: newIndex,
+            unlockedFretsPerString: newUnlockedFretsPerString,
+            unlockedFrets: newUnlockedFretsPerString[6] ?? 1,
+          },
+        };
+      }),
       
       // ====================================================================
       // Global Actions
