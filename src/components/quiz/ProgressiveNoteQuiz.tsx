@@ -69,8 +69,9 @@ export function ProgressiveNoteQuiz() {
   const [settingsExpanded, setSettingsExpanded] = useState(false);
 
   // Derive current string info and notes for that string
-  // Handle legacy store state that may not have unlockedFretsPerString
-  const currentString = STRING_PROGRESSION[progressiveQuiz.currentStringIndex ?? 0];
+  // Handle legacy store state that may not have unlockedFretsPerString or currentStringIndex
+  const currentStringIndex = progressiveQuiz.currentStringIndex ?? 0;
+  const currentString = STRING_PROGRESSION[currentStringIndex];
   const currentStringNotes = STRING_NOTES[currentString];
   const unlockedFretsPerString = progressiveQuiz.unlockedFretsPerString ?? { 6: 1 };
   const currentStringUnlockedFrets = unlockedFretsPerString[currentString] ?? 1;
@@ -78,11 +79,11 @@ export function ProgressiveNoteQuiz() {
   // Get list of mastered strings (all frets unlocked)
   const masteredStrings = useMemo(() => {
     const mastered: number[] = [];
-    for (let i = 0; i < progressiveQuiz.currentStringIndex; i++) {
+    for (let i = 0; i < currentStringIndex; i++) {
       mastered.push(STRING_PROGRESSION[i]);
     }
     return mastered;
-  }, [progressiveQuiz.currentStringIndex]);
+  }, [currentStringIndex]);
 
   // Derive notes/performance for the target string (used when quiz is active)
   // Falls back to current learning string when no question is active
@@ -660,7 +661,7 @@ export function ProgressiveNoteQuiz() {
                   min={0}
                   max={5}
                   step={1}
-                  value={progressiveQuiz.currentStringIndex.toString()}
+                  value={currentStringIndex.toString()}
                   onChange={(e) => forceString(Number(e.target.value) || 0)}
                 />
               </Flex>
