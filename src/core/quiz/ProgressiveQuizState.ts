@@ -597,7 +597,7 @@ export class ProgressiveQuizState {
     const performance = stringPerf.get(fret);
     if (!performance) return false;
 
-    if (performance.attempts < this._config.minAttemptsToUnlock) {
+    if (performance.attempts < this._config.minAttemptsForLearned) {
       return false;
     }
 

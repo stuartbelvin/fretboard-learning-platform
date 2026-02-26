@@ -4,3 +4,4 @@ export { IntervalQuizTest } from './IntervalQuizTest';
 export { NoteProgressDisplay } from './NoteProgressDisplay';
 export type { NoteProgressDisplayProps, NotePerformance, NoteStatus } from './NoteProgressDisplay';
 export { ProgressiveNoteQuiz } from './ProgressiveNoteQuiz';
+export { ZoneNoteQuiz } from './ZoneNoteQuiz';

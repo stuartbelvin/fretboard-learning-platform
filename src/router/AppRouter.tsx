@@ -1,6 +1,6 @@
 import { createHashRouter, RouterProvider } from 'react-router-dom';
 import { AppLayout } from './AppLayout';
-import { HomePage, NoteQuizPage, IntervalQuizPage, SettingsPage, ZoneAdminPage, ProgressiveQuizPage } from '../pages';
+import { HomePage, NoteQuizPage, IntervalQuizPage, SettingsPage, ZoneAdminPage, ProgressiveQuizPage, ZoneQuizPage } from '../pages';
 
 /**
  * Route Configuration
@@ -36,6 +36,10 @@ export const routes = [
       {
         path: 'zone-admin',
         element: <ZoneAdminPage />,
+      },
+      {
+        path: 'zone-quiz',
+        element: <ZoneQuizPage />,
       },
       {
         path: 'settings',

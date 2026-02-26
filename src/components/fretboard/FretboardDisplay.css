@@ -41,6 +41,31 @@
 }
 
 /* ===========================================
+   Layering System (Z-Index Guide)
+   ===========================================
+   The fretboard consists of multiple overlapping layers. From back to front:
+   
+   Layer 1 (z-index 1): Background elements
+   - Fret markers (.fret-markers-layer)
+   - Zone highlights (.note-cell.zone-highlight::before)
+   
+   Layer 2 (z-index 3): Fret wires
+   - Fret wires (.fret-wire) - positioned at right edge of each fret
+   
+   Layer 3 (z-index 4): Strings
+   - String lines (.string-line)
+   
+   Layer 4 (z-index 10): Interactive elements
+   - Note buttons (.note-button)
+   - Nut (.nut)
+   
+   IMPORTANT: Zone highlights use overflow:hidden on the parent .note-cell
+   to clip the highlight to cell boundaries. This prevents the highlight from
+   extending under adjacent fret wires. On hover, overflow becomes visible
+   to allow scale animations on the note button.
+   =========================================== */
+
+/* ===========================================
    Wrapper Layout (contains fretboard + slider)
    =========================================== */
 .fretboard-wrapper {
@@ -323,7 +348,25 @@
 /* Note cell when in a highlight zone */
 .note-cell.zone-highlight {
   position: relative;
+  /* Clip highlight to cell boundaries to prevent peeking under fret wires */
+  overflow: hidden;
 }
+
+/* Don't clip when hovering note button (allows scale animation) */
+.note-cell.zone-highlight:hover {
+  overflow: visible;
+}
+
+/* ===========================================
+   Zone Highlights
+   ===========================================
+   Implementation approach:
+   - Each .note-cell.zone-highlight has a ::before pseudo-element
+   - The ::before fills the cell (left: 0, right: 0)
+   - overflow: hidden on the parent .note-cell clips excess to cell boundaries
+   - This prevents highlights from peeking under adjacent fret wires
+   - On hover, overflow becomes visible to allow note button scale animation
+   =========================================== */
 
 /* Semi-transparent rectangular highlight for notes in zones */
 .note-cell.zone-highlight::before {
@@ -333,15 +376,15 @@
   height: var(--note-button-size);
   top: 50%;
   transform: translateY(-50%);
+  /* Full width - overflow:hidden on cell clips any excess */
   left: 0;
   right: 0;
   /* Rectangle - no border radius */
   border-radius: 0;
   background: var(--zone-highlight-color);
-  /* Full opacity - strings and frets render above */
+  /* Full opacity - strings and frets render above (see Layering System above) */
   opacity: 1;
   pointer-events: none;
-  /* Z-index 1 puts it behind fret wires (3), strings (4), and note buttons (10) */
   z-index: 1;
   animation: zone-fade-in 0.3s ease-out;
 }
@@ -498,7 +541,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: rgba(239, 68, 68, 0.5);
+  background: rgba(255, 255, 255, 0.3);
   animation: rejected-flash 0.5s ease;
   pointer-events: none;
   z-index: 8;

@@ -10,3 +10,4 @@ export { IntervalQuizPage } from './IntervalQuizPage';
 export { SettingsPage } from './SettingsPage';
 export { ZoneAdminPage } from './ZoneAdminPage';
 export { ProgressiveQuizPage } from './ProgressiveQuizPage';
+export { ZoneQuizPage } from './ZoneQuizPage';

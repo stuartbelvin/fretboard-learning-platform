@@ -12,7 +12,9 @@ import type { StringTuning } from '../core/instruments/Fretboard';
 import { STANDARD_TUNING, DROP_D_TUNING, OPEN_G_TUNING } from '../core/instruments/Fretboard';
 import type { HighlightZoneJSON } from '../core/zones/HighlightZone';
 import { DEFAULT_PROGRESSIVE_CONFIG } from '../core/quiz/ProgressiveQuizState';
+import { DEFAULT_ZONE_QUIZ_CONFIG } from '../core/quiz/ZoneQuizState';
 import type { ProgressiveQuizConfig, NotePerformanceData } from '../core/quiz/ProgressiveQuizState';
+import type { ZoneQuizConfig } from '../core/quiz/ZoneQuizState';
 // Note types imported for documentation purposes only
 
 // ============================================================================
@@ -237,6 +239,28 @@ export const DEFAULT_PROGRESSIVE_QUIZ_PERFORMANCE: ProgressiveQuizPerformance = 
 };
 
 /**
+ * Zone quiz performance state (persisted)
+ * Tracks performance for notes within a zone that can slide up/down the fretboard.
+ */
+export interface ZoneQuizPerformance {
+  config: ZoneQuizConfig;
+  performance: Record<string, { attempts: number; correct: number; answerTimes: number[]; lastAttemptTime: number }>;
+  zonePositions: { string: number; fret: number }[];
+  unlockedCount: number;
+  currentSlide: number;
+  slidingEnabled: boolean;
+}
+
+export const DEFAULT_ZONE_QUIZ_PERFORMANCE: ZoneQuizPerformance = {
+  config: DEFAULT_ZONE_QUIZ_CONFIG,
+  performance: {},
+  zonePositions: [],
+  unlockedCount: 1,
+  currentSlide: 0,
+  slidingEnabled: false,
+};
+
+/**
  * Complete app state interface
  */
 export interface AppState {
@@ -247,6 +271,7 @@ export interface AppState {
   viewport: ViewportConfig;
   savedZones: SavedZone[];
   progressiveQuiz: ProgressiveQuizPerformance;
+  zoneQuiz: ZoneQuizPerformance;
   
   // Quiz actions
   startQuiz: (type: QuizType) => void;
@@ -290,6 +315,15 @@ export interface AppState {
   resetProgressiveQuiz: () => void;
   forceUnlockFrets: (numFrets: number) => void;
   forceStringIndex: (index: number) => void;
+  
+  // Zone quiz actions
+  recordZoneAttempt: (string: number, fret: number, correct: boolean, answerTimeSeconds: number) => void;
+  updateZoneConfig: (config: Partial<ZoneQuizConfig>) => void;
+  resetZoneQuiz: () => void;
+  setZonePositions: (positions: { string: number; fret: number }[]) => void;
+  slideZone: () => void;
+  forceZoneUnlock: (count: number) => void;
+  forceZoneSliding: (enabled: boolean) => void;
   
   // Global actions
   resetToDefaults: () => void;
@@ -347,6 +381,7 @@ export const useAppStore = create<AppState>()(
       viewport: DEFAULT_VIEWPORT_CONFIG,
       savedZones: [],
       progressiveQuiz: DEFAULT_PROGRESSIVE_QUIZ_PERFORMANCE,
+      zoneQuiz: DEFAULT_ZONE_QUIZ_PERFORMANCE,
       
       // ====================================================================
       // Quiz Actions
@@ -607,7 +642,7 @@ export const useAppStore = create<AppState>()(
             let allMeetCriteria = true;
             for (let f = 0; f < unlockedFrets; f++) {
               const p = newStringPerf[f];
-              if (!p || p.attempts < config.minAttemptsToUnlock) {
+              if (!p || p.attempts < config.minAttemptsForLearned) {
                 allMeetCriteria = false;
                 break;
               }
@@ -635,7 +670,7 @@ export const useAppStore = create<AppState>()(
             let allMeetCriteria = true;
             for (let f = 0; f < 12; f++) {
               const p = newStringPerf[f];
-              if (!p || p.attempts < config.minAttemptsToUnlock) {
+              if (!p || p.attempts < config.minAttemptsForLearned) {
                 allMeetCriteria = false;
                 break;
               }
@@ -725,6 +760,145 @@ export const useAppStore = create<AppState>()(
           },
         };
       }),
+      
+      // ====================================================================
+      // Zone Quiz Actions
+      // ====================================================================
+      
+      recordZoneAttempt: (string: number, fret: number, correct: boolean, answerTimeSeconds: number) => set((state) => {
+        const baseFret = fret - state.zoneQuiz.currentSlide;
+        const key = `s${string}f${baseFret}`;
+        const currentPerf = state.zoneQuiz.performance[key] || { attempts: 0, correct: 0, answerTimes: [], lastAttemptTime: 0 };
+        
+        const newPerf = {
+          attempts: currentPerf.attempts + 1,
+          correct: currentPerf.correct + (correct ? 1 : 0),
+          answerTimes: answerTimeSeconds <= state.zoneQuiz.config.maxAnswerTimeToCount
+            ? [...currentPerf.answerTimes, answerTimeSeconds]
+            : currentPerf.answerTimes,
+          lastAttemptTime: Date.now(),
+        };
+        
+        // Check if we should unlock next note
+        let newUnlockedCount = state.zoneQuiz.unlockedCount;
+        let newSlidingEnabled = state.zoneQuiz.slidingEnabled;
+        
+        if (!newSlidingEnabled && newUnlockedCount < 12) {
+          // Check if all unlocked notes meet criteria
+          let allMeetCriteria = true;
+          for (let i = 0; i < newUnlockedCount; i++) {
+            const pos = state.zoneQuiz.zonePositions[i];
+            if (pos) {
+              const posKey = `s${pos.string}f${pos.fret}`;
+              const posPerf = state.zoneQuiz.performance[posKey] || { attempts: 0, correct: 0, answerTimes: [] };
+              if (posPerf.attempts < state.zoneQuiz.config.minAttemptsToUnlock) {
+                allMeetCriteria = false;
+                break;
+              }
+              const accuracy = (posPerf.correct / posPerf.attempts) * 100;
+              if (accuracy < state.zoneQuiz.config.accuracyThreshold) {
+                allMeetCriteria = false;
+                break;
+              }
+              if (posPerf.answerTimes.length > 0) {
+                const avgTime = posPerf.answerTimes.reduce((a, b) => a + b, 0) / posPerf.answerTimes.length;
+                if (avgTime > state.zoneQuiz.config.averageTimeThreshold) {
+                  allMeetCriteria = false;
+                  break;
+                }
+              }
+            }
+          }
+          
+          if (allMeetCriteria) {
+            newUnlockedCount++;
+            if (newUnlockedCount === 12) {
+              newSlidingEnabled = true;
+            }
+          }
+        }
+        
+        return {
+          zoneQuiz: {
+            ...state.zoneQuiz,
+            performance: { ...state.zoneQuiz.performance, [key]: newPerf },
+            unlockedCount: newUnlockedCount,
+            slidingEnabled: newSlidingEnabled,
+          },
+        };
+      }),
+      
+      updateZoneConfig: (config: Partial<ZoneQuizConfig>) => set((state) => ({
+        zoneQuiz: {
+          ...state.zoneQuiz,
+          config: { ...state.zoneQuiz.config, ...config },
+        },
+      })),
+      
+      resetZoneQuiz: () => set((state) => ({
+        zoneQuiz: {
+          ...state.zoneQuiz,
+          performance: {},
+          unlockedCount: 1,
+          currentSlide: 0,
+          slidingEnabled: false,
+        },
+      })),
+      
+      setZonePositions: (positions: { string: number; fret: number }[]) => set((state) => ({
+        zoneQuiz: {
+          ...state.zoneQuiz,
+          zonePositions: positions,
+          unlockedCount: 1,
+          currentSlide: 0,
+          slidingEnabled: false,
+          performance: {},
+        },
+      })),
+      
+      slideZone: () => set((state) => {
+        const maxSlide = state.zoneQuiz.config.maxSlideAmount;
+        const positions = state.zoneQuiz.zonePositions;
+        
+        let minValidSlide = -maxSlide;
+        let maxValidSlide = maxSlide;
+        
+        for (const pos of positions) {
+          if (pos.fret + minValidSlide < 0) {
+            minValidSlide = -pos.fret;
+          }
+          if (pos.fret + maxValidSlide > 24) {
+            maxValidSlide = 24 - pos.fret;
+          }
+        }
+        
+        const range = maxValidSlide - minValidSlide;
+        let newSlide = 0;
+        if (range > 0) {
+          newSlide = minValidSlide + Math.floor(Math.random() * (range + 1));
+        }
+        
+        return {
+          zoneQuiz: {
+            ...state.zoneQuiz,
+            currentSlide: newSlide,
+          },
+        };
+      }),
+      
+      forceZoneUnlock: (count: number) => set((state) => ({
+        zoneQuiz: {
+          ...state.zoneQuiz,
+          unlockedCount: Math.max(1, Math.min(12, count)),
+        },
+      })),
+      
+      forceZoneSliding: (enabled: boolean) => set((state) => ({
+        zoneQuiz: {
+          ...state.zoneQuiz,
+          slidingEnabled: enabled,
+        },
+      })),
       
       // ====================================================================
       // Global Actions

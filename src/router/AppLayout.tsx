@@ -1,6 +1,16 @@
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import '../App.css';
+
+const PAGES = [
+  { path: '/home', label: 'Classic Fretboard' },
+  { path: '/note-quiz', label: 'Note Quiz' },
+  { path: '/interval-quiz', label: 'Interval Quiz' },
+  { path: '/progressive-quiz', label: 'Progressive Quiz' },
+  { path: '/zone-quiz', label: 'Zone Quiz' },
+  { path: '/zone-admin', label: 'Zone Admin' },
+  { path: '/settings', label: 'Settings' },
+];
 
 /**
  * LocalStorage key for persisting the last visited route
@@ -17,14 +27,26 @@ const LAST_ROUTE_KEY = 'fretboard-app-last-route';
 export function AppLayout() {
   const location = useLocation();
 
-  // Persist current route to localStorage for navigation state persistence
   useEffect(() => {
     localStorage.setItem(LAST_ROUTE_KEY, location.pathname);
   }, [location.pathname]);
 
+  const showDevNav = location.pathname !== '/progressive-quiz' && location.pathname !== '/';
+
   return (
     <div className="app">
-      {/* Page Content - no header/navbar */}
+      {showDevNav && (
+        <nav className="dev-navbar">
+          <div className="dev-navbar-title">Dev Nav</div>
+          <ul className="dev-navbar-links">
+            {PAGES.map((page) => (
+              <li key={page.path}>
+                <Link to={page.path}>{page.label}</Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
       <Outlet />
     </div>
   );
